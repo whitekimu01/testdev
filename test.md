@@ -1,3 +1,21 @@
+<img width="735" height="476" alt="image" src="https://github.com/user-attachments/assets/3d78b667-6e70-4f3f-a00e-d49889542455" /><img width="735" height="476" alt="image" src="https://github.com/user-attachments/assets/9f379896-3dcc-4474-a0bf-d041434ae4d1" />
+
+
+LUMA Agent 설계서
+
+프로젝트명: LUMA Agent
+버전: v0.1
+보안등급: 내부용
+작성일: 2026-08-03
+작성자: 정성민
+
+변경 이력 (Revision History)
+버전	작성일	변경 내용	작성자
+v0.1	2026-08-03	초안 작성	정성민
+
+
+
+
 
 
 
