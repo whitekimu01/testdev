@@ -1,5 +1,3 @@
-<img width="735" height="476" alt="image" src="https://github.com/user-attachments/assets/3d78b667-6e70-4f3f-a00e-d49889542455" /><img width="735" height="476" alt="image" src="https://github.com/user-attachments/assets/9f379896-3dcc-4474-a0bf-d041434ae4d1" />
-
 
 LUMA Agent 설계서
 
@@ -14,7 +12,7 @@ LUMA Agent 설계서
 v0.1	2026-08-03	초안 작성	정성민
 
 
-
+<img width="735" height="476" alt="image" src="https://github.com/user-attachments/assets/9f379896-3dcc-4474-a0bf-d041434ae4d1" />
 
 
 
