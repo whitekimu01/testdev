@@ -4,17 +4,15 @@
 
 ## 1.1 개발 목적
 
-## 1.1 개발 목적
+본 프로젝트는 LLM 기반 Agent 기술을 활용하여 LUMA 플랫폼의 지식 검색과 매뉴얼 생성 업무를 자동화하는 **LUMA Agent 시스템 구축**을 목적으로 합니다.
 
-본 프로젝트는 LLM 기반 Agent 기술을 활용하여 LUMA 플랫폼의 지식 검색과 매뉴얼 생성 업무를 자동화하는 **LUMA Agent 시스템 구축**을 목적으로 한다.
-
-주요 개발 범위는 다음과 같다.
+주요 개발 범위는 다음과 같습니다.
 
 * 자연어 기반 지능형 검색 (**검색 내 검색**)
 * Frontend 변경 분석 기반 매뉴얼 자동 생성 (**매뉴얼 자동화**)
 * Agent Orchestration 기반 업무 자동화 환경 구축
 
-이를 통해 LUMA 사용자에게 빠르고 정확한 정보 제공과 업무 자동화 기능을 제공한다.
+이를 통해 LUMA 사용자에게 빠르고 정확한 정보 제공과 업무 자동화 기능을 제공합니다.
 
 ---
 
@@ -22,42 +20,40 @@
 
 ### 1.2.1 정보 탐색 비용 증가
 
-LUMA 플랫폼 기능 및 데이터가 지속적으로 증가함에 따라 사용자가 원하는 정보를 찾기 위해 여러 화면을 개별적으로 확인해야 하는 문제가 발생하고 있다.
+LUMA 플랫폼 기능 및 데이터가 지속적으로 증가함에 따라 사용자가 원하는 정보를 찾기 위해 여러 화면을 개별적으로 확인해야 하는 문제가 발생하고 있습니다.
 
-기존 키워드 기반 검색 방식은 사용자의 의도와 업무 맥락을 충분히 이해하지 못하기 때문에 정확한 정보를 찾기 위해 반복적인 검색 과정이 필요하다.
+기존 키워드 기반 검색 방식은 사용자의 의도와 업무 맥락을 충분히 이해하지 못하기 때문에 정확한 정보를 찾기 위해 반복적인 검색 과정이 필요합니다.
 
-이에 따라 자연어 기반 질의 이해와 Context 기반 검색 기술을 활용한 지능형 검색 환경 구축이 필요하다.
+이에 따라 자연어 기반 질의 이해와 Context 기반 검색 기술을 활용한 지능형 검색 환경 구축이 필요합니다.
 
 ---
 
 ### 1.2.2 매뉴얼 관리 비용 증가
 
-LUMA 기능 변경 및 신규 화면 추가 시 사용자 매뉴얼은 개발자가 변경 내용을 확인하고 직접 작성하는 방식으로 관리되고 있다.
+LUMA 기능 변경 및 신규 화면 추가 시 사용자 매뉴얼은 개발자가 변경 내용을 확인하고 직접 작성하는 방식으로 관리되고 있습니다.
 
-이러한 방식은 다음과 같은 문제가 있다.
+이러한 방식은 다음과 같은 문제가 있습니다.
 
 * UI 변경 사항과 매뉴얼 간 불일치 발생
 * 신규 기능 배포 후 문서 작성 지연
 * 반복적인 문서 작성 업무 증가
 
-따라서 Frontend 구조 분석 및 AI 기반 문서 생성 기술을 활용한 자동화 체계 구축이 필요하다.
+따라서 Frontend 구조 분석 및 AI 기반 문서 생성 기술을 활용한 자동화 체계 구축이 필요합니다.
 
 ---
 
 ### 1.2.3 Agent 기반 업무 자동화 필요
 
-LUMA 사용자는 단순한 정보 조회뿐 아니라, 여러 시스템의 데이터를 종합하여 업무를 수행해야 한다.
+LUMA 사용자는 단순한 정보 조회뿐 아니라, 여러 시스템의 데이터를 종합하여 업무를 수행해야 합니다.
 
-예를 들어 하나의 질문에 대해 검색, 시스템 조회, 결과 검증, 응답 생성 등 여러 단계의 처리가 연속적으로 수행되어야 한다.
+예를 들어 하나의 질문에 대해 검색, 시스템 조회, 결과 검증, 응답 생성 등 여러 단계의 처리가 연속적으로 수행되어야 합니다.
 
-실제 업무 환경에서는 다음과 같은 복합 처리가 요구된다.
+실제 업무 환경에서는 다음과 같은 복합 처리가 요구됩니다.
 
 ```
 사용자 요청
     ↓
 요청 의도 분석
-    ↓
---필요 정보 검색
     ↓
 외부 시스템 조회
     ↓
@@ -66,25 +62,127 @@ LUMA 사용자는 단순한 정보 조회뿐 아니라, 여러 시스템의 데�
 최종 답변 생성
 ```
 
-이와 같은 업무는 단순한 검색 기능만으로 처리하기 어렵기 때문에, 요청의 의도를 분석하고 적절한 Workflow를 수행하는 **Agent Orchestrator 중심의 실행 구조**가 필요하다.
+이와 같은 업무는 단순한 검색 기능만으로 처리하기 어렵기 때문에, 요청의 의도를 분석하고 적절한 Workflow를 수행하는 **Agent Orchestrator 중심의 실행 구조**가 필요합니다.
 
 ---
 
 ## 1.3 개발 범위
 
-본 프로젝트는 크게 다음 두 가지 핵심 기능을 대상으로 개발한다.
+본 프로젝트는 크게 다음 두 가지 핵심 기능을 대상으로 개발합니다.
+
+```mermaid
+flowchart TB
+
+LUMA[LUMA AGENT 시스템]
+subgraph SEARCH["검색 내 검색 기능 영역"]
+CHAT[AI Chat Interface]
+SEARCH_ENGINE[검색 내 검색 처리]
+MEMORY[Memory System]
+SYSTEM[LUMA System]
+
+CHAT --> SEARCH_ENGINE
+SEARCH_ENGINE --> MEMORY
+SEARCH_ENGINE --> SYSTEM
+end
+subgraph MANUAL["매뉴얼 자동화 기능 영역"]
+EVENT[Frontend 변경 정보]
+ANALYSIS[화면 정보 분석]
+GENERATOR[HTML Manual 생성]
+REPO[Frontend Repository]
+
+EVENT --> ANALYSIS
+REPO --> ANALYSIS
+ANALYSIS --> GENERATOR
+end
+LUMA --> SEARCH
+LUMA --> MANUAL
+```
 
 ---
 
-# 1.3.1 검색 내 검색
+### 1.3.1 검색 내 검색
 
-## 개요
+#### 개요
 
-사용자가 자연어 형태로 LUMA 관련 정보를 질문하면 Agent가 질문의 의도를 분석하여 검색 Workflow를 수행하고, **키워드 검색과 임베딩 기반 의미 검색(Hybrid Search)** 을 통해 필요한 정보를 탐색한 후 **검색 결과와 해당 화면(URL)을 함께 제공하는 기능**이다.
+사용자가 자연어 형태로 LUMA 관련 정보를 질문하면 Agent가 질문의 의도를 분석하여 검색 Workflow를 수행하고, **키워드 검색과 임베딩 기반 의미 검색(Hybrid Search)** 을 통해 필요한 정보를 탐색한 후 **검색 결과와 해당 화면(URL)을 함께 제공하는 기능**입니다.
 
-또한, 이전 대화 Context를 유지하여 동일한 검색 대상을 반복 입력하지 않아도 연속 질의를 수행할 수 있다.
+또한, 이전 대화 Context를 유지하여 동일한 검색 대상을 반복 입력하지 않아도 연속 질의를 수행할 수 있습니다.
 
-### 진행 흐름
+---
+
+### 1.3.2 매뉴얼 자동화
+
+#### 개요
+
+매뉴얼 자동화는 **LUMA Frontend 코드 변경 사항을 감지하고 React 기반 Frontend 리소스를 분석하여 기존 HTML 매뉴얼 템플릿 형식의 사용자 매뉴얼을 자동 생성하는 기능**입니다.
+
+Frontend 리소스에서 화면 구성 정보를 추출하고, 기존 HTML 템플릿을 기반으로 매뉴얼을 생성하여 화면 변경 사항을 신속하게 반영할 수 있도록 지원합니다.
+
+---
+
+## 1.4 개발 목표
+
+LUMA Agent는 단계적으로 Agent 기능 성숙도를 높이는 방식으로 개발합니다.
+
+검증 가능한 작은 범위부터 시작하여 **Tool Calling 안정성, 대화 상태 관리, 계획 수립, 추론 능력**을 단계적으로 확장합니다.
+
+각 단계는 이전 단계의 품질 기준을 만족해야 다음 단계로 확장하며, 초기 단계에서 API 연계와 응답 구조 검증을 우선 수행합니다. 이를 통해 복잡한 추론 기능보다 먼저 실제 운영 환경에서 발생 가능한 오류 요소를 조기에 검증합니다.
+
+```mermaid
+flowchart LR
+
+L0["<b>Lv.0</b><br/><b>화면 연계</b><br/><br/>단일 API 조회<br/>응답 스키마 계약"]
+L1["<b>Lv.1</b><br/><b>조회ㆍ집계</b><br/><br/>트렌드ㆍLot 상세<br/>스펙 이탈ㆍ통계"]
+L2["<b>Lv.2</b><br/><b>대화형 연계</b><br/><br/>plan 수립ㆍ다중 호출<br/>interview 보충"]
+L3["<b>Lv.3</b><br/><b>추론ㆍ판독</b><br/><br/>근본원인ㆍ이미지<br/>문서 검색 합류"]
+L0 --> L1
+L1 --> L2
+L2 --> L3
+```
+
+
+# 2장. LUMA Agent 시스템 개발 계획
+
+## 2.1 검색 내 검색 개발
+
+### 2.1.1 기능 개요
+
+검색 내 검색는 사용자가 자연어 형태로 LUMA 시스템 정보를 질의하면 Agent가 질문 의도를 분석하고, 관련 지식 및 시스템 데이터를 검색하여 답변을 제공하는 지능형 검색 서비스입니다.
+
+기존 검색 방식은 사용자가 특정 키워드를 입력하고 검색 결과를 직접 확인하는 방식이었습니다.
+
+하지만 실제 업무에서는 사용자가 원하는 정보가 단일 문서에 존재하지 않고 여러 데이터에 분산되어 있어 정보 분석 과정이 필요합니다.
+
+본 기능에서는 Agent Reasoning을 적용하여 사용자의 질문 의도를 이해하고 관련 정보를 종합하여 답변을 생성합니다.
+
+---
+
+### 2.1.2 Agent 기반 검색
+
+```mermaid
+flowchart LR
+
+A[사용자 요청]
+--> B[Intent 분석]
+--> C[Task 생성]
+--> D{Agent 선택}
+D --> E[Search Agent]
+D --> F[Manual Agent]
+D -.-> G[Extensible Agent]
+E --> H[Tool Calling]
+F --> H[Tool Calling]
+G -.-> H[Tool Calling]
+H --> I[Memory 갱신]
+I --> J[Confidence Check]
+J --> K[Output Guardrail]
+K --> L[최종 응답]
+```
+
+---
+
+### 2.1.3 주요 개발 기능
+
+#### 진행 흐름
 
 ```text
 사용자 자연어 질문
@@ -98,9 +196,6 @@ Agent Workflow
         ▼
 Hybrid Search
 (Keyword + Embedding)
-        │
-        ▼
-검색 결과 통합 및 Ranking
         │
         ▼
 Confidence Check
@@ -120,11 +215,9 @@ Conversation Memory 저장
 
 ---
 
-## 주요 개발 기능
+#### 1) 자연어 질의 이해
 
-### 1) 자연어 질의 이해
-
-사용자의 자연어 질문을 분석하여 검색 목적과 검색 대상을 식별한다.
+사용자의 자연어 질문을 분석하여 검색 목적과 검색 대상을 식별합니다.
 
 예)
 
@@ -145,32 +238,21 @@ Intent
 - LOT123
 ```
 
-질의 분석 결과는 Agent Workflow에서 적절한 검색 전략과 검색 대상을 선택하는 기준으로 활용된다.
+질의 분석 결과는 Agent Workflow에서 적절한 검색 전략과 검색 대상을 선택하는 기준으로 활용됩니다.
 
 ---
 
-### 2) Hybrid Search 기반 검색
+#### 2) Hybrid Search 기반 검색
 
-검색 정확도를 향상시키기 위해 **키워드 검색과 임베딩 기반 의미 검색을 병행 수행(Hybrid Search)** 한다.
+검색 정확도를 향상시키기 위해 **키워드 검색과 임베딩 기반 의미 검색을 병행 수행(Hybrid Search)** 합니다.
 
-각 검색 결과를 통합하여 우선순위를 평가(Ranking)하고 가장 적합한 결과를 선택한다.
-
-검색 결과의 신뢰도가 낮거나 적합한 결과를 찾지 못한 경우에는 LLM을 활용하여 추가 분석을 수행한다.
-
-**적용 기술**
-
-* Keyword Search
-* Embedding Search
-* Hybrid Search
-* Result Ranking
-* Confidence Check
-* LLM Fallback
+검색 결과의 신뢰도가 낮거나 적합한 결과를 찾지 못한 경우에는 LLM을 활용하여 추가 분석을 수행합니다.
 
 ---
 
-### 3) 검색 결과 및 화면 URL 제공
+#### 3) 검색 결과 및 화면 URL 제공
 
-검색 결과와 함께 해당 정보를 조회할 수 있는 LUMA 화면 URL을 제공하여 사용자가 즉시 관련 화면으로 이동할 수 있도록 지원한다.
+검색 결과와 함께 해당 정보를 조회할 수 있는 LUMA 화면 URL을 제공하여 사용자가 즉시 관련 화면으로 이동할 수 있도록 지원합니다.
 
 예)
 
@@ -187,9 +269,9 @@ https://luma/.../inspection?lot=LOT123
 
 ---
 
-### 4) 연속 질의 지원
+#### 4) 연속 질의 지원
 
-Agent는 이전 대화 Context를 유지하여 연속 질의를 지원한다.
+Agent는 이전 대화 Context를 유지하여 연속 질의를 지원합니다.
 
 예)
 
@@ -215,23 +297,31 @@ LOT123의 불량 검사 결과만 조회하여 제공
 ↓
 
 사용자
-관련 매뉴얼도 보여줘
+트렌드 차트도 보여줘
 
 ↓
 
 Agent
-동일 LOT 기준의 관련 매뉴얼과 화면 URL 제공
+LOT123의 트렌드 차트 화면 URL 제공
+
+↓
+
+사용자
+웨이퍼맵 조회 화면에서 불량률 조건 설정 방법 알려줘
+
+↓
+
+Agent
+매뉴얼 URL 제공
 ```
 
 ---
 
-### 적용 Workflow 특징
+#### 적용 Workflow 특징
 
 | 단계                  | 처리 내용                                |
 | ------------------- | ------------------------------------ |
-| Intent Analysis     | 사용자 질의 분석 및 검색 대상 식별                 |
 | Hybrid Search       | Keyword Search + Embedding Search 수행 |
-| Result Ranking      | 검색 결과 통합 및 우선순위 평가                   |
 | Confidence Check    | 검색 결과 신뢰도 평가                         |
 | LLM Fallback        | 검색 결과가 부족한 경우 보조 분석 수행               |
 | Response            | 검색 결과와 화면 URL 제공                     |
@@ -239,15 +329,36 @@ Agent
 
 ---
 
-# 1.3.2 매뉴얼 자동화
+## 2.2 매뉴얼 자동화 개발
 
-## 개요
+### 2.2.1 기능 개요
 
-매뉴얼 자동화는 **LUMA Frontend 코드 변경 사항을 감지하고 React 기반 Frontend 리소스를 분석하여 기존 HTML 매뉴얼 템플릿 형식의 사용자 매뉴얼을 자동 생성하는 기능**이다.
+매뉴얼 자동화은 LUMA 시스템의 Frontend 변경 사항을 자동 분석하고 사용자 매뉴얼을 생성하는 기능입니다.
 
-Frontend 리소스에서 화면 구성 정보를 추출하고, 기존 HTML 템플릿을 기반으로 매뉴얼을 생성하여 화면 변경 사항을 신속하게 반영할 수 있도록 지원한다.
+기존에는 화면 변경 시 담당자가 직접 화면을 확인하고 문서를 작성하였다.
 
-### 진행 흐름
+본 기능에서는 Source Code 분석, UI 실행 분석, Screenshot 생성, LLM 기반 문서화를 자동화하여 최신 매뉴얼을 지속적으로 유지합니다.
+
+---
+
+### 2.2.2 Agent 기반 자동 생성
+
+```mermaid
+flowchart LR
+
+A[Frontend 화면 변경]
+--> B[변경 내용 분석]
+--> C[화면 정보 추출]
+--> D[AI 기반 Manual 생성]
+--> E[HTML Manual 생성]
+--> F[검증 및 제공]
+```
+
+---
+
+### 2.2.3 주요 개발 기능
+
+#### 진행 흐름
 
 ```text
 Frontend 코드 변경 감지
@@ -263,11 +374,11 @@ HTML 매뉴얼 생성
 
 ---
 
-## 주요 개발 기능
+#### 주요 개발 기능
 
-### 1) Frontend 리소스 분석
+#### 1) Frontend 리소스 분석
 
-React 기반 Frontend 리소스를 분석하여 화면 구성 정보를 추출한다.
+React 기반 Frontend 리소스를 분석하여 화면 구성 정보를 추출합니다.
 
 분석 대상
 
@@ -277,15 +388,15 @@ React 기반 Frontend 리소스를 분석하여 화면 구성 정보를 추출�
 * 화면 간 이동 정보
 * API 연계 정보
 
-추출된 정보는 HTML 매뉴얼 생성을 위한 입력 데이터로 활용된다.
+추출된 정보는 HTML 매뉴얼 생성을 위한 입력 데이터로 활용됩니다.
 
 ---
 
-### 2) HTML 매뉴얼 자동 생성
+##### 2) HTML 매뉴얼 자동 생성
 
-분석된 Frontend 리소스와 **기존 HTML 매뉴얼 템플릿**을 기반으로 사용자 매뉴얼을 자동 생성한다.
+분석된 Frontend 리소스와 **기존 HTML 매뉴얼 템플릿**을 기반으로 사용자 매뉴얼을 자동 생성합니다.
 
-생성되는 매뉴얼에는 다음 정보를 포함한다.
+생성되는 매뉴얼에는 다음 정보를 포함합니다.
 
 * 화면 개요
 * 화면 구성
@@ -299,106 +410,63 @@ React 기반 Frontend 리소스를 분석하여 화면 구성 정보를 추출�
 
 ---
 
-## 1.4 개발 목표
+## 2.3 시스템 아키텍처 개요
 
-LUMA Agent는 단계적으로 Agent 기능 성숙도를 높이는 방식으로 개발한다.
-
-검증 가능한 작은 범위부터 시작하여 **Tool Calling 안정성, 대화 상태 관리, 계획 수립, 추론 능력**을 단계적으로 확장합니다.
-
-각 단계는 이전 단계의 품질 기준을 만족해야 다음 단계로 확장하며, 초기 단계에서 API 연계와 응답 구조 검증을 우선 수행합니다. 이를 통해 복잡한 추론 기능보다 먼저 실제 운영 환경에서 발생 가능한 오류 요소를 조기에 검증합니다.
-
-# 2장. 개발 추진 계획
-
-## 2.1 개발 방법론
-
-* **Agile (Scrum) 방법론 적용:** 2주 단위 스프린트를 통해 Agent 기능 단위별 빠른 개발, 테스트 및 피드백 반영.
-* **Prompt Engineering & Evaluation Loop:** LLM 출력 결과에 대한 지속적인 벤치마킹 데이터셋 구축 및 평가(Ragas 등) 프로세스 병행.
-
-## 2.2 개발 일정 계획
-
-* **1~2개월 차:** 요구사항 정의, 전체 아키텍처 설계, Milvus Schema 및 데이터 파이프라인 구축.
-* **3~4개월 차:** LangGraph Orchestrator 구축, Search Agent & Manual Agent 핵심 기능 구현.
-* **5개월 차:** MCP Tool 연동, Memory System 및 Guardrail/Logging 통합.
-* **6개월 차:** 종합 테스트(성능/Agent Workflow), 최적화 및 운영 안정화.
-
-## 2.3 개발 환경 구성
-
-* **개발/검증 환경:** Docker 및 Kubernetes 기반 컨테이너 환경, GPU Server(NVIDIA A100/H100) 확보.
-* **CI/CD Pipeline:** Git-Flow 전략, GitHub Actions를 통한 자동 빌드 및 Agent Eval Test 배포 파이프라인 구축.
-
----
-
-# 3장. LUMA Agent 시스템 구축 계획
-
-## 3.1 시스템 아키텍처 개요
-
-LUMA Agent는 단일 LLM 호출 기반 구조가 아닌, 사용자의 요청을 분석하고 적절한 Agent와 Tool을 선택하여 업무를 수행하는 **Agent Orchestration 기반 구조**로 설계한다.
-
-전체 시스템은 안정적인 실행과 지속적인 개선을 위해 다음 3개 영역으로 구성한다.
-
-* **Execution Layer**
-
-  * 사용자 요청 처리 및 Agent 실행 영역
-  * Orchestrator와 Sub-Agent, Tool 연계 수행
-
-* **Memory Layer**
-
-  * 대화 Context 및 업무 지식 관리 영역
-  * 단기 기억과 장기 지식 저장소로 구성
-
-* **Improvement Layer**
-
-  * Agent 품질 평가 및 지속 개선 영역
-  * 사용자 피드백과 실행 데이터를 기반으로 성능 개선
-
----
-
-## 3.1.1 LUMA Agent Layer Architecture
-
-```mermaid
-flowchart TB
-
-A[Improvement Layer<br/><br/>
-Feedback Evaluation<br/>
-Quality Monitoring<br/>
-Prompt Optimization]
-
-B[Execution Layer<br/><br/>
-Agent Orchestrator<br/>
-Search Agent<br/>
-Manual Agent<br/>
-MCP Tool]
-
-C[Memory Layer<br/><br/>
-Conversation Memory<br/>
-Knowledge Memory<br/>
-Vector Database]
-
-A --> B
-B --> C
-C --> B
-
+아키텍처 다이어그램 
+ 
+```mermaid 
+flowchart TB 
+    subgraph USER_Layer ["👤 사용자 계층"]
+        direction LR 
+        U1["자연어 질의\n(한국어 / 영어)"]:::userLayer 
+    end 
+     
+    subgraph APP_Layer ["🔧 앱 계층"]
+        direction LR 
+        A1["app.py"]:::appLayer 
+        A2["GaiaService\nFastAPI 앱 빌드"]:::appLayer 
+        A3["A2A 프로토콜\n라우팅"]:::appLayer 
+        A4["API 엔드포인트\n미들웨어 · 세션"]:::appLayer 
+    end 
+     
+    subgraph ENGINE_Layer ["⚙️ 워크플로우 엔진 계층"]
+        direction LR 
+        E1["routing_node\n▶ RequestClassifier\n▶ agent 라우팅"]:::engineLayer 
+        E2["llm_reasoning_node\n▶ LLM 추론\n▶ tool_call 생성"]:::engineLayer 
+        E3["tool_execution_node\n▶ @tool 도구 실행\n▶ LUMA API 호출"]:::engineLayer 
+        E4["validation_node\n▶ 응답 quality 검증\n▶ retry / fallback"]:::engineLayer 
+        E5["output_node\n▶ Guardrails\n▶ 최종 응답"]:::engineLayer 
+    end 
+     
+    subgraph INFRA_Layer ["☁️ Infra 계층"]
+        direction LR 
+        I1["SQLite\n파일 DB"]:::infraLayer 
+        I2["Redis\nCheckpoint"]:::infraLayer 
+        I3["OpenAI / LLM\n추론"]:::infraLayer 
+        I4["LUMA API\nREST API"]:::infraLayer 
+    end 
+     
+    USER_Layer -->|"POST /api/luma_react\nJSON request"| APP_Layer 
+    APP_Layer -->|"LangGraph\nStateGraph"| ENGINE_Layer 
+    ENGINE_Layer -->|"LUMA API 호출\nHTTP
+POST"| INFRA_Layer 
+     
+    E1 ==>|"current_agent\nagent type"| E2 
+    E2 ==>|"tool_calls\ntool list"| E3 
+    E3 ==>|"tool_results\nexecution result"| E4 
+    E4 ==>|"validation\npass / error"| E5 
 ```
+---
 
 ---
 
-## 3.1.2 Layer별 주요 역할
+## 2.4 Agent Orchestrator 설계
 
-| 영역                | 구성 요소                              | 주요 역할               |
-| ----------------- | ---------------------------------- | ------------------- |
-| Improvement Layer | Evaluation, Feedback, Optimization | Agent 결과 분석 및 품질 개선 |
-| Execution Layer   | Orchestrator, Agent, Tool          | 사용자 요청 처리 및 업무 수행   |
-| Memory Layer      | Redis, Milvus                      | Context 및 지식 저장 관리  |
+### 2.4.1 Orchestrator 개요
 
----
+Agent Orchestrator는 LUMA Agent 시스템의 핵심 제어 영역으로 사용자 요청을 분석하고, 필요한 작업을 계획한 후 적절한 Agent 및 Tool을 호출하는 역할을 수행합니다.
 
-# 3.2 Agent Orchestrator 설계
-
-## 3.2.1 Orchestrator 개요
-
-Agent Orchestrator는 LUMA Agent 시스템의 핵심 제어 영역으로 사용자 요청을 분석하고, 필요한 작업을 계획한 후 적절한 Agent 및 Tool을 호출하는 역할을 수행한다.
-
-Agent 기반 구조에서는 요청의 목적과 상황을 판단하여 실행 경로를 동적으로 결정한다.
+Agent 기반 구조에서는 요청의 목적과 상황을 판단하여 실행 경로를 동적으로 결정합니다.
 
 ```
 사용자 요청
@@ -430,11 +498,11 @@ Tool 실행
 
 ---
 
-## 3.2.2 주요 기능
+### 2.4.2 주요 기능
 
-### 1) Intent Classification
+#### 1) Intent Classification
 
-사용자의 자연어 요청을 분석하여 업무 목적을 판단한다.
+사용자의 자연어 요청을 분석하여 업무 목적을 판단합니다.
 
 예)
 
@@ -445,9 +513,9 @@ Tool 실행
 
 ---
 
-### 2) Task Planning
+#### 2) Task Planning
 
-사용자의 요청을 수행하기 위해 필요한 작업(Task)을 생성하고 실행 순서를 결정한다.
+사용자의 요청을 수행하기 위해 필요한 작업(Task)을 생성하고 실행 순서를 결정합니다.
 
 예)
 
@@ -481,9 +549,9 @@ Task 4.
 
 ---
 
-### 3) Agent Routing
+#### 3) Agent Routing
 
-분석된 작업 목적에 따라 적합한 Sub-Agent를 선택한다.
+분석된 작업 목적에 따라 적합한 Sub-Agent를 선택합니다.
 
 사용자 요청:
 ```
@@ -518,9 +586,9 @@ Frontend Code Change
 
 ---
 
-### 4) Execution State 관리
+#### 4) Execution State 관리
 
-Agent 실행 과정에서 다음 정보를 관리한다.
+Agent 실행 과정에서 다음 정보를 관리합니다.
 
 * 현재 수행 단계
 * 실행 결과
@@ -528,15 +596,15 @@ Agent 실행 과정에서 다음 정보를 관리한다.
 * 오류 발생 상태
 * 재실행 여부
 
-이를 통해 복합 업무 처리와 실패 상황 복구가 가능하도록 설계한다.
+이를 통해 복합 업무 처리와 실패 상황 복구가 가능하도록 설계합니다.
 
 ---
 
-# 3.2.3 LangGraph 기반 Workflow 설계
+### 2.4.3 LangGraph 기반 Workflow 설계
 
-LUMA Agent Workflow는 LangGraph 기반 State Graph 구조로 구현한다.
+LUMA Agent Workflow는 LangGraph 기반 State Graph 구조로 구현합니다.
 
-각 작업 단계를 Node로 정의하고, 실행 결과에 따라 다음 Node를 선택하는 방식으로 동작한다.
+각 작업 단계를 Node로 정의하고, 실행 결과에 따라 다음 Node를 선택하는 방식으로 동작합니다.
 
 ```mermaid
 flowchart LR
@@ -571,25 +639,25 @@ F -->|Need Retry| B
 
 ---
 
-# 3.3 Agent 구성 설계
+## 2.5 Agent 구성 설계
 
-LUMA Agent는 업무 목적에 따라 역할별 Agent를 분리한다.
-
----
-
-# 3.3.1 Search Agent
-
-## 개요
-
-LUMA 내부 지식과 시스템 데이터를 검색하고 사용자 질문에 대한 근거 기반 답변을 생성하는 Agent이다.
+LUMA Agent는 업무 목적에 따라 역할별 Agent를 분리합니다.
 
 ---
 
-## 주요 기능
+### 2.5.1 Search Agent
 
-### Query Understanding
+#### 개요
 
-사용자의 질문을 분석하여 검색 조건을 생성한다.
+LUMA 내부 지식과 시스템 데이터를 검색하고 사용자 질문에 대한 근거 기반 답변을 생성하는 Agent입니다.
+
+---
+
+#### 주요 기능
+
+##### Query Understanding
+
+사용자의 질문을 분석하여 검색 조건을 생성합니다.
 
 예:
 
@@ -612,9 +680,9 @@ Manual + Release Note
 
 ---
 
-### Hybrid Search
+##### Hybrid Search
 
-검색 정확도 향상을 위해 Vector Search와 Keyword Search를 결합한다.
+검색 정확도 향상을 위해 Vector Search와 Keyword Search를 결합합니다.
 
 구조:
 
@@ -651,17 +719,17 @@ E --> F
 
 ---
 
-# 3.3.2 Manual Agent
+### 2.5.2 Manual Agent
 
-## 개요
+#### 개요
 
-LUMA Frontend 구조와 기능 변경 내용을 분석하여 사용자 매뉴얼을 자동 생성하는 Agent이다.
+LUMA Frontend 구조와 기능 변경 내용을 분석하여 사용자 매뉴얼을 자동 생성하는 Agent입니다.
 
 ---
 
-## 주요 기능
+#### 주요 기능
 
-### UI 구조 분석
+##### UI 구조 분석
 
 분석 대상:
 
@@ -672,7 +740,7 @@ LUMA Frontend 구조와 기능 변경 내용을 분석하여 사용자 매뉴얼
 
 ---
 
-### Manual 생성 Workflow
+##### Manual 생성 Workflow
 
 ```mermaid
 flowchart LR
@@ -708,15 +776,122 @@ F --> G
 
 ```
 
+
+### 2.5.3
+
+analytic — 생산 데이터 분석 전문가 
+ 
+**역할**: Luma API를 통해 Lot 파라미터, 측정값, 공정 히스토리를 조회하고 비교 분석하여 통찰을 제공. 
+ 
+**시스템 프롬프트 원문**: 
+ 
+```text 
+당신은 생산 데이터 분석 전문가입니다. Luma API를 통해 데이터를 조회하고, 
+관련 문서를 검색하여 종합 분석 결과를 제공하세요. 
+ 
+=== 데이터 분석 워크플로 (반드시 따르세요) === 
+1. **데이터 추출**: analyze 요청 시 fetch_lot_parameters, fetch_lot_measurements, 
+fetch_process_history, compare_lot_measurements 도구를 사용하여 LUMA API에서 
+데이터를 직접 조회합니다. 반드시 도구 호출을 통해 데이터를 얻어야 합니다. 
+ 
+규칙: 
+1. 항상 숫자와 통계를 기반으로 분석하세요. 
+2. 데이터 출처를 명시하세요. 
+3. 인사이트는 구체적이고 actionable하게 제공하세요. 
+4. 응답은 반드시 마크다운 표 형식으로 제공하세요. 
+5. lot_id는 반드시 사용자 쿼리에서 추출하거나 이전 대화에서 참조하세요. 
+6. 이전 대화에서 언급된 Lot ID를 기억하고 재사용하세요. 
+7. **결과 요약 필수**: 도구 호출 결과를 받은 후, 더 이상 도구를 호출할 필요가 없다면 
+반드시 결과를 요약하여 응답하세요. '조회하겠습니다'만으로 응답을 끝내지 마세요. 
+8. **LUMA 웹 UI 링크 제공**: 데이터 조회 후에는 관련 화면 URL도 함께 안내하세요. 
+예: 파라미터 조회 → Wafer Map 링크, 측정값 조회 → Wafer Map 링크, 
+공정 이력 조회 → Lot History 링크. 사용자가 웹에서 직접 확인할 수 있도록 돕습니다.
+```
+
+
+file — 파일 관리 전문가 
+ 
+**역할**: 파일 처리 결과 조회, CSV 파일 생성, 다운로드 링크 제공. 
+ 
+**시스템 프롬프트 원문**: 
+ 
+```text 
+당신은 파일 관리 전문가입니다. 파일 처리 결과 조회, CSV 파일 생성, 파일 다운로드 링크 제공 등의 작업을 수행합니다. 
+ 
+사용 가능한 도구: 
+- open_file_processing_results: 파일 처리 결과 페이지 열기 (lot_cd 필요) 
+- fetch_file_data_summary: 파일 처리 결과 데이터 요약 조회 (param_key, lot_cd 필요) 
+- generate_wafer_map_csv: 웨이퍼 맵 CSV 파일 생성 
+- generate_wafer_cum_map_csv: 웨이퍼 Cum 맵 CSV 파일 생성 
+ 
+중요 규칙: 
+1. 사용자가 '파일 처리 결과 보여줘', '파일 결과 조회' 등을 요청하면 반드시 open_file_processing_results 도구를 호출하세요. 
+2. 사용자가 'CSV 파일 생성', '다운로드' 등을 요청하면 generate_wafer_map_csv 또는 generate_wafer_cum_map_csv를 호출하세요. 
+3. 도구 호출 없이 텍스트로만 응답하지 마세요. 사용자 요청에 맞는 도구를 반드시 호출하세요. 
+4. 파일 생성 시 반드시 다운로드 주소를 제공하세요. 
+5. CSV 파일은 UTF-8-sig 인코딩으로 생성됩니다. 
+6. 필수 파라미터가 누락된 경우 사용자에게 요청하세요. 
+7. lot_cd 또는 lot_id 중 하나는 반드시 필요한 경우가 많습니다. 
+8. 도구 호출 결과로 받은 URL을 사용자에게 안내하세요. 
+```
+
+
+
+Web UI 네비게이션 전문가 
+ 
+**역할**: Luma 시스템의 Web UI 메뉴 조회, 웨이퍼 맵, 트렌드 차트, 리포트 화면 등 URL 생성 및 안내. 
+ 
+**시스템 프롬프트 원문**: 
+ 
+```text 
+당신은 반도체 생산 공정 데이터 분석 AI 어시스턴트입니다. 
+사용자의 요청을 분석하고 적절한 도구를 호출하여 Luma 시스템의 기능을 제공합니다. 
+ 
+사용 가능한 도구: 
+- get_menu_list: 메뉴/기능 목록 조회 
+- open_wafer_map: 웨이퍼 맵 페이지 열기 (cum 단어 없을 때) 
+- open_trend_chart: 트렌드 차트 열기 
+- open_fuse_usage_chart: Fuse Usage 차트 열기 
+- open_fail_category_summary: 카테고리 리포트 열기 
+- open_fail_address_distribution: Fail Address 분포 열기 
+- fetch_file_data_summary: 파일 처리 결과 데이터 요약 
+- generate_wafer_map_csv: 웨이퍼 맵 CSV 생성 
+- compare_lot_measurements: 두 Lot 측정값 비교 분석 
+ 
+중요 규칙: 
+1. 사용자가 메뉴, 기능, program list 등을 요청하면 반드시 get_menu_list 도구를 호출하세요. 
+2. 사용자가 웨이퍼 맵, 트렌드 차트, 파일 처리 등을 요청하면 해당 도구를 호출하세요. 
+3. 도구 호출 없이 텍스트로만 응답하지 마세요. 사용자 요청에 맞는 도구를 반드시 호출하세요. 
+4. 한국어 요청에는 한국어로 응답하세요. 
+5. 날짜는 YYYY-MM-DD 형식을 선호합니다. '
+
+
+
+오늘', '금일'은 자동 처리됩니다. 
+6. lot_cd 또는 lot_id 중 하나는 반드시 필요한 경우가 많습니다. 
+7. 이전 도구 호출 결과를 참조하여 후속 요청의 파라미터를 보완하세요. 
+8. 도구 호출 결과로 받은 URL을 사용자에게 안내하세요. 
+9. **결과 요약 필수**: 도구 호출 결과를 받은 후, 더 이상 도구를 호출할 필요가 없다면 
+반드시 결과를 요약하여 응답하세요. '조회하겠습니다'나 '분석하겠습니다'만으로 응답을 끝내지 마세요. 
+항상 데이터 출처를 명시하고 표 형식으로 결과를 정리하세요. 
+10. **LUMA 웹 UI 링크 제공**: fetch_lot_parameters, fetch_lot_measurements, 
+fetch_process_history, compare_lot_measurements 도구로 데이터를 조회한 후에는 
+사용자가 LUMA 웹사이트에서 직접 확인할 수 있도록 관련 화면 URL도 함께 안내하세요. 
+예: '파라미터 데이터 조회 → Wafer Map 화면에서도 확인할 수 있습니다: [링크]' 
+```
+
 ---
 
-# 3.4 Tool 연계 설계
+## 2.6 Tool 연계 설계
 
-## 3.4.1 MCP 기반 Tool Architecture
+### 2.6.1 MCP 기반 Tool Architecture
 
-LUMA Agent는 MCP(Model Context Protocol)를 기반으로 외부 기능과 연결한다.
+Tool 설계 원칙은 하나의 Tool은 하나의 기능만 담당하도록 설계하고, 입출력 데이터는 JSON Schema 기반 검증을 수행합니다.
 
-이를 통해 Agent와 Tool을 분리하고 신규 기능 추가 시 Agent 변경 없이 확장이 가능하도록 설계한다.
+LUMA Agent는 MCP(Model Context Protocol)를 기반으로 외부 기능과 연결합니다.
+
+이를 통해 Agent와 Tool을 분리하고 신규 기능 추가 시 Agent 변경 없이 확장이 가능하도록 설계합니다.
+
 
 ```mermaid
 flowchart LR
@@ -725,62 +900,73 @@ A[Agent Core]
 
 B[MCP Server]
 
-C[Search Tool]
+C[LUMA API]
 
-D[LUMA API]
-
-E[DOM Parser]
-
-F[Capture Tool]
+D[DOM Parser]
 
 
 A --> B
 
 B --> C
 B --> D
-B --> E
-B --> F
 
 ```
 
+### 2.6.2 Tool 목록
+
+Agent Orchestrator가 실제로 호출하는 LLM Tool의 명세는 다음과 같습니다.
+
+### 1) 파일 처리 도구
+
+| Tool name | 설명 | API |
+|-----------|------|-----|
+| `open_file_processing_results` | 파일 처리 결과 URL 생성 | GET |
+| `open_fail_category_summary` | 카테고리 리포트 URL 생성 | GET |
+| `open_fail_address_distribution` | Fail Address 분포 URL 생성 | GET |
+| `open_fail_address_detailmap` | Fail Address 상세 맵 URL 생성 | GET |
+
+### 2) 데이터 조회 도구
+
+| Tool name | 설명 | API |
+|-----------|------|-----|
+| `fetch_file_data_summary` | 파일 처리 결과 데이터 요약 | GET |
+| `fetch_lot_parameters` | Lot 파라미터 데이터 조회 | POST /wafer/abt |
+| `fetch_lot_measurements` | Lot 측정값 데이터 조회 | POST /wafer/item |
+| `fetch_process_history` | 공정 경로 히스토리 조회 | POST /history/fab/kt/wlp/wt |
+
+### 3) 비교 분석 도구
+
+| Tool name | 설명 | API |
+|-----------|------|-----|
+| `compare_lot_measurements` | 두 Lot 측정값 비교 분석 | 비교 API 호출 |
+
+### 4) CSV 생성 도구
+
+| Tool name | 설명 |
+|-----------|------|
+| `generate_wafer_map_csv` | 웨이퍼 맵 CSV 생성 |
+| `generate_wafer_cum_map_csv` | 웨이퍼 Cum 맵 CSV 생성 |
+
+### 5) 도구별 agent 매핑
+
+| Agent | 사용 도구 |
+|-------|----------|
+| `analytic` | fetch_lot_parameters, fetch_lot_measurements, fetch_process_history, compare_lot_measurements, get_menu_list |
+| `file` | fetch_file_data_summary, generate_wafer_map_csv, generate_wafer_cum_map_csv |
+| `rag` | RAG 검색 도구 |
+| `web` | open_* 도구 (Web GET) |
+
 ---
 
-## 3.4.2 Tool 구성
+## 2.7 Memory System 설계
 
-| Tool               | 역할             |
-| ------------------ | -------------- |
-| Milvus Search Tool | Knowledge 검색   |
-| LUMA API Tool      | 내부 시스템 데이터 조회  |
-| DOM Parser Tool    | Frontend 구조 분석 |
-| Screenshot Tool    | 화면 이미지 생성      |
+### 2.7.1 Memory 구성
+
+LUMA Agent는 Agent 실행에 필요한 정보를 단기 기억과 장기 기억으로 분리하여 관리합니다.
 
 ---
 
-## 3.4.3 Tool 설계 원칙
-
-### Single Responsibility
-
-하나의 Tool은 하나의 기능만 담당하도록 설계한다.
-
-### Schema Validation
-
-입출력 데이터는 JSON Schema 기반 검증을 수행한다.
-
-### Error Handling
-
-Tool 오류 발생 시 표준 Error Code와 Fallback 처리 방식을 제공한다.
-
----
-
-# 3.5 Memory System 설계
-
-## 3.5.1 Memory 구성
-
-LUMA Agent는 Agent 실행에 필요한 정보를 단기 기억과 장기 기억으로 분리하여 관리한다.
-
----
-
-## Short-term Memory
+#### Short-term Memory
 
 현재 대화 및 실행 상태 관리
 
@@ -796,7 +982,7 @@ LUMA Agent는 Agent 실행에 필요한 정보를 단기 기억과 장기 기억
 
 ---
 
-## Long-term Memory
+#### Long-term Memory
 
 지속적으로 활용 가능한 업무 지식 저장
 
@@ -813,46 +999,11 @@ LUMA Agent는 Agent 실행에 필요한 정보를 단기 기억과 장기 기억
 
 ---
 
-## 3.5.2 검색 최적화 구조
+## 2.8 Agent 품질 및 안정화 설계
 
-검색 품질 향상을 위해 다음 구조를 적용한다.
+### 2.8.1 Confidence Check
 
-```
-User Query
-
- ↓
-
-Embedding 생성
-
- ↓
-
-Dense Vector Search
-
- +
-
-BM25 Keyword Search
-
- ↓
-
-Hybrid Retrieval
-
- ↓
-
-Reranking
-
- ↓
-
-LLM Generation
-
-```
-
----
-
-# 3.6 Agent 품질 및 안정화 설계
-
-## 3.6.1 Confidence Check
-
-Agent 생성 결과에 대해 자체 검증 단계를 수행한다.
+Agent 생성 결과에 대해 자체 검증 단계를 수행합니다.
 
 검증 항목:
 
@@ -860,54 +1011,20 @@ Agent 생성 결과에 대해 자체 검증 단계를 수행한다.
 * 검색 Context 기반 생성 여부
 * Hallucination 여부
 
-검증 결과 기준 이하일 경우:
+```mermaid
+flowchart LR
 
+A[Agent 결과 생성]
+--> B[Confidence Check]
+
+B -->|높음| C[사용자 응답]
+B -->|낮음| D[재검색 또는 확인 요청]
 ```
-답변 생성
-
- ↓
-
-Confidence 평가
-
- ↓
-
-실패
-
- ↓
-
-재검색 / 재생성
-
-```
-
 ---
 
-## 3.6.2 Guardrail 설계
+### 2.8.3 Logging 및 Trace 관리
 
-Agent 운영 환경에서 발생 가능한 위험 요소를 제어한다.
-
-### Input Guardrail
-
-검증 대상:
-
-* Prompt Injection
-* 개인정보 포함 여부
-* 비정상 요청
-
----
-
-### Output Guardrail
-
-검증 대상:
-
-* 민감 정보 노출
-* 허용되지 않은 데이터 출력
-* 응답 Format 검증
-
----
-
-## 3.6.3 Logging 및 Trace 관리
-
-Agent 실행 과정 전체를 추적하여 장애 분석 및 품질 개선에 활용한다.
+Agent 실행 과정 전체를 추적하여 장애 분석 및 품질 개선에 활용합니다.
 
 관리 항목:
 
@@ -919,95 +1036,94 @@ Agent 실행 과정 전체를 추적하여 장애 분석 및 품질 개선에 �
 
 적용 기술:
 
-* OpenTelemetry
-* LangSmith
 * Phoenix
 
 ---
 
-# 4장. 기술 구현 계획
+# 3장. 기술 구현 계획
 
-## 4.1 기술 구현 방향
+## 3.1 기술 구현 방향
 
-LUMA Agent는 LLM 기반 추론 능력과 검색·데이터 처리·업무 자동화 기능을 결합한 **Agent Platform 구조**로 구현한다.
+LUMA Agent는 LLM 기반 추론 능력과 검색·데이터 처리·업무 자동화 기능을 결합한 **Agent Platform 구조**로 구현합니다.
 
-단순히 LLM API를 호출하는 방식이 아닌, 다음 기술 요소를 조합하여 안정적인 서비스 구조를 구축한다.
+단순히 LLM API를 호출하는 방식이 아닌, 다음 기술 요소를 조합하여 안정적인 서비스 구조를 구축합니다.
 
 * Agent Workflow Orchestration
-* Retrieval Augmented Generation(RAG)
-* Vector Database 기반 Knowledge Memory
 * MCP 기반 Tool Integration
 * Agent Evaluation 및 Monitoring
 
-이를 통해 사용자 요청 분석부터 정보 검색, Tool 실행, 결과 검증까지 전체 업무 흐름을 자동화한다.
+이를 통해 사용자 요청 분석부터 정보 검색, Tool 실행, 결과 검증까지 전체 업무 흐름을 자동화합니다.
 
 ---
 
-# 4.2 기술 아키텍처 구성
+## 3.2 기술 아키텍처 구성
 
-## 4.2.1 Application Layer
+### 3.2.5 워크플로우 레이어 (Workflows Layer)
 
-사용자 요청을 처리하고 Agent 기능을 제공하는 서비스 영역이다.
+| 파일 | 경로 | 역할 |
+|------|------|------|
+| `luma_react_legacy.py` | `src/workflows/luma/luma_react_legacy.py` | 메인 ReAct 워크플로우 (StateGraph 빌드, 5개 노드 + 조건부 에지, routing/llm_reasoning/tool_execution/validation/output) |
+| `agentic_state.py` | `src/workflows/agentic_state.py` | AgentState TypedDict 정의 (messages, tool_calls, iteration, retry_count 등) |
 
-구성 요소:
+### 3.2.6 도구 레이어 (Tool Layer)
 
-| 기술        | 역할                    |
-| --------- | --------------------- |
-| FastAPI   | Agent Backend API 제공  |
-| React     | 사용자 인터페이스 구성          |
-| WebSocket | Streaming Response 제공 |
+| 파일 | 경로 | 역할 |
+|------|------|------|
+| `luma_tools.py` | `src/tools/luma_tools.py` | LangChain @tool 도구 정의 (16개 도구: get_menu_list, open_*, fetch_*, compare_*) |
+| `luma_api_mapper.py` | `src/tools/luma_api_mapper.py` | API 엔드포인트 매핑 레이어 (LumApiMapper 싱글톤, param mapping/defaults/validation) |
+| `luma_param_validator.py` | `src/tools/luma_param_validator.py` | 동적 파라미터 검증 모듈 |
+| `luma_web_ui_mapper.py` | `src/tools/luma_web_ui_mapper.py` | 웹 GET |
+
+### 3.2.7 공통 레이어 (Common Layer)
+
+| 파일 | 경로 | 역할 |
+|------|------|------|
+| `response_formatter.py` | `src/common/response_formatter.py` | SSE 스트리밍, ainvoke_graph, stream_graph, OpenAI chat completion 스트리밍, graph config 빌드 |
+| `return_node.py` | `src/common/return_node.py` | gaia_return_adapter, GaiaReturnNode, GaiaGraphBuilder, normalize_return_state |
+| `return_schema.py` | `src/common/return_schema.py` | 상태 정규화, reference doc 보정, token usage 정리, metadata 추출 |
+| `config.py` | `src/common/config.py` | config.yml 설정 로드, Pydantic Settings |
+| `s3_file.py` | `src/common/s3_file.py` | S3 서명 URL 생성, 파일 라우터 |
+
+### 3.2.8 핵심 레이어 (Core Layer)
+
+| 파일 | 경로 | 역할 |
+|------|------|------|
+| `llm_core.py` | `src/core/ll
+
+m_core.py` | LLM 추론 추상화 (ChatOpenAI wrapper, config 자동 로딩, tool_calls 추출) |
+| `param_extractor.py` | `src/core/param_extractor.py` | 임베딩 기반 의미 파라미터 추출 (lot_ids, oper_desc, page_size) |
+| `retriever.py` | `src/core/retriever.py` | Milvus 벡터 검색 엔진 |
+| `semantic_matcher.py` | `src/core/semantic_matcher.py` | 의미 기반 도구 매칭 |
+| `document_parser.py` | `src/core/document_parser.py` | 문서 파서 |
+| `session_memory.py` | `src/core/session_memory.py` | 세션 메모리 관리 |
+
+### 3.2.9 라우팅 / 진입점 (Routing / Entry Points)
+
+| 파일 | 경로 | 역할 |
+|------|------|------|
+| `app.py` | `app.py` | 루트 진입점, GaiaService.init |
+| `core.py` | `src/gaia/core.py` | GaiaService 클래스 (FastAPI 앱 빌드, A2A 라우팅, 미들웨어, API 엔드포인트) |
+| `__init__.py` | `src/routers/__init__.py` | 라우터 결합 (gaia_router, api_router, a2a_router 등) |
+| `module.py` | `src/routers/chat/module.py` | 워크플로우 모듈 로딩 (dynamic import, build_graph/manager 자동 감지) |
+
+### 3.2.10 유틸리티 레이어 (Utils)
+
+| 파일 | 경로 | 역할 |
+|------|------|------|
+| `classifier.py` | `src/utils/classifier.py` | RequestClassifier (LLM 기반 + keyword fallback) |
+| `user_session.py` | `src/utils/user_session.py` | 사용자 세션 관리 |
+| `openinference_workaround.py` | `src/utils/openinference_workaround.py` | OpenInference tool_calls 복구 패치 |
+---
 
 ---
 
-## 4.2.2 Agent Framework Layer
+## 3.3 Agent Framework 구현 계획
 
-Agent 실행 및 Workflow 제어 영역이다.
+### 3.3.1 LangGraph 기반 Orchestration 구현
 
-구성 요소:
+LUMA Agent의 실행 흐름은 LangGraph 기반 StateGraph 구조로 구현합니다.
 
-| 기술        | 역할                      |
-| --------- | ----------------------- |
-| LangGraph | Agent Workflow 관리       |
-| LangChain | LLM 및 Tool 연계 Framework |
-| MCP       | Agent와 외부 Tool 연결 표준    |
-
----
-
-## 4.2.3 Data & Memory Layer
-
-Agent가 활용하는 지식과 실행 Context를 관리한다.
-
-구성 요소:
-
-| 기술         | 역할                              |
-| ---------- | ------------------------------- |
-| Milvus     | Vector Knowledge Storage        |
-| Redis      | Session Memory 및 Workflow State |
-| PostgreSQL | Metadata 및 Transaction Data 관리  |
-
----
-
-## 4.2.4 Monitoring Layer
-
-Agent 품질과 운영 상태를 관리한다.
-
-구성 요소:
-
-| 기술            | 역할                |
-| ------------- | ----------------- |
-| OpenTelemetry | Trace 수집          |
-| LangSmith     | Agent Workflow 분석 |
-| Phoenix       | LLM 품질 분석         |
-
----
-
-# 4.3 Agent Framework 구현 계획
-
-## 4.3.1 LangGraph 기반 Orchestration 구현
-
-LUMA Agent의 실행 흐름은 LangGraph 기반 StateGraph 구조로 구현한다.
-
-각 Agent 작업을 Node 단위로 정의하고, 실행 결과에 따라 조건부 Routing을 수행한다.
+각 Agent 작업을 Node 단위로 정의하고, 실행 결과에 따라 조건부 Routing을 수행합니다.
 
 구조:
 
@@ -1053,9 +1169,9 @@ H --> I
 
 ---
 
-## 4.3.2 Agent 실행 관리
+### 3.3.2 Agent 실행 관리
 
-Agent 실행 과정에서 다음 상태 정보를 관리한다.
+Agent 실행 과정에서 다음 상태 정보를 관리합니다.
 
 | 상태 정보       | 설명             |
 | ----------- | -------------- |
@@ -1064,14 +1180,31 @@ Agent 실행 과정에서 다음 상태 정보를 관리한다.
 | Tool State  | 외부 Tool 호출 결과  |
 | Error State | 오류 및 복구 상태     |
 
-이를 기반으로 복합 업무 처리 및 실패 상황 재실행을 지원한다.
+이를 기반으로 복합 업무 처리 및 실패 상황 재실행을 지원합니다.
 
 
-## 4.3.3 LangGraph Workflow 구현 예시
+### 3.3.3 LangGraph Workflow 구현 예시
 
-LUMA Agent Workflow는 LangGraph StateGraph 기반으로 구현하며, 각 작업 단계를 Node로 정의한다.
-Workflow는 사용자 요청 분석 결과에 따라 Search Agent 또는 Manual Agent로 Routing 된다.
-구현 예시는 다음과 같다.
+LUMA Agent Workflow는 LangGraph StateGraph 기반으로 구현하며, 각 작업 단계를 Node로 정의합니다.
+Workflow는 사용자 요청 분석 결과에 따라 Search Agent 또는 Manual Agent로 Routing 됩니다.
+구현 예시는 다음과 같습니다.
+
+#### 시나리오 A: Search Agent Routing
+> **사용자**: "12345 Lot 의 KT1H 값을 알려줘"
+> **Agent**: Intent 분석 → 키워드 "값" 감지 → type: "search" 판정
+> **Routing**: Conditional Edge → search Node 로 이동
+> **Search Agent**: API 검색 수행 → {"lot_id": "12345", "kt1h": 12.5} 반환
+> **답변**: "검색 결과: {'lot_id': '12345', 'kt1h': 12.5}"
+> **Workflow**: analyze → search → END
+
+
+#### 시나리오 B: Maual Agent Routing
+> **사용자**: "공정 절차 매뉴얼을 보여줘"
+> **Agent**: Intent 분석 → 키워드 "매뉴얼" 감지 → type: "manual" 판정
+> **Routing**: Conditional Edge → manual Node 로 이동
+> **Manual Agent**: 매뉴얼 DB 검색 → 표준 절차서 반환
+> **답변**: "Manual Generated"
+> **Workflow**: analyze → manual → END
 
 ```python
 from langgraph.graph import StateGraph, END
@@ -1113,31 +1246,35 @@ graph.add_edge("manual", END)
 
 agent = graph.compile()
 
-```
-```
-설명: 
-사용자 요청
- ↓
-Intent 분석
- ↓
-Agent Routing
- ↓
-Search Agent 또는 Manual Agent 실행
+# Search Agent Routing
+result1 = agent.invoke({"query": "12345 Lot 의 KT1H 값을 알려줘"})
+print(result1)
+# → {'type': 'search', 'result': 'LUMA Search Result'}
+
+# Manual Agent Routing
+result2 = agent.invoke({"query": "공정 절차 매뉴얼을 보여줘"})
+print(result2)
+# → {'type': 'manual', 'result': 'Manual Generated'}
+
 ```
 
 ---
 
-# 4.4 LLM 모델 적용 계획
+## 3.4 LLM 모델 적용 계획
 
-## 4.4.1 모델 운영 전략
+### 3.4.1 모델 운영 전략
 
-LUMA Agent는 모든 작업에 동일한 대형 모델을 사용하는 방식이 아닌, 업무 특성에 따라 모델을 분리 적용한다.
+LUMA Agent는 모든 작업에 동일한 대형 모델을 사용하는 방식이 아닌, 업무 특성에 따라 모델을 분리 적용합니다.
 
 ---
 
-## Main Reasoning Model
+#### LLM Model
 
 복합 추론 및 결과 생성 업무 담당
+
+적용 모델:
+
+### GLM5.2
 
 적용 영역:
 
@@ -1148,86 +1285,18 @@ LUMA Agent는 모든 작업에 동일한 대형 모델을 사용하는 방식이
 
 예:
 
-* Claude Sonnet 계열
-* GPT 계열
 * 사내 운영 LLM 모델
 
----
-
-## Lightweight Model
-
-반복적이고 단순한 처리 담당
-
-적용 영역:
-
-* Intent Classification
-* Query Rewrite
-* Entity Extraction
-* Format 변환
-
-장점:
-
-* 응답 속도 향상
-* 비용 절감
-* 처리량 증가
 
 ---
 
-# 4.5 RAG 기반 Knowledge System 구현
+### 3.4.2 Embedding 모델 적용
 
-## 4.5.1 검색 구조
-
-LUMA Agent의 지식 검색은 Hybrid Retrieval 구조를 적용한다.
-
-구성:
-
-```mermaid
-flowchart LR
-
-A[User Query]
-
-B[Query Processing]
-
-C[Embedding Model]
-
-D[Dense Vector Search]
-
-E[BM25 Search]
-
-F[Hybrid Retrieval]
-
-G[Reranker]
-
-H[LLM Generation]
-
-
-A --> B
-
-B --> C
-
-C --> D
-
-B --> E
-
-D --> F
-
-E --> F
-
-F --> G
-
-G --> H
-
-```
-
----
-
-## 4.5.2 Embedding 모델 적용
-
-문서 및 사용자 Query를 Vector 형태로 변환하여 의미 기반 검색을 수행한다.
+문서 및 사용자 Query를 Vector 형태로 변환하여 의미 기반 검색을 수행합니다.
 
 적용 모델:
 
-### BGE-M3
+### KO_SBERT_NLI
 
 특징:
 
@@ -1240,96 +1309,16 @@ G --> H
 
 * LUMA 매뉴얼
 * 업무 문서
-* 장애 처리 이력
-* FAQ 데이터
+* 사용자 요청 문맥 파악 
+* Tool calling 필수 파라미터
 
 ---
 
-## 4.5.3 Reranking 적용
+## 3.5 Memory System 구현 계획
 
-초기 검색 결과의 정확도를 향상시키기 위해 Reranker 모델을 적용한다.
+### 3.5.1 Short-term Memory
 
-처리 과정:
-
-```
-검색 후보 100개
-
-        ↓
-
-Reranker 평가
-
-        ↓
-
-상위 Context 선택
-
-        ↓
-
-LLM 답변 생성
-
-```
-
-적용 모델:
-
-* BGE Reranker 계열
-
-
-## 4.5.4 RAG Retrieval 구현 예시
-
-LUMA Agent 검색은 Dense Retrieval과 Sparse Retrieval을 결합한 Hybrid Retrieval 방식으로 구현한다.
-
-```python
-def rag_search(query):
-
-    embedding = create_embedding(query)
-
-    documents = vector_search(
-        embedding
-    )
-
-    answer = llm_generate(
-        documents
-    )
-
-    return answer
-
-
-def create_embedding(text):
-
-    return "vector"
-
-
-def vector_search(vector):
-
-    return [
-        "LUMA Manual",
-        "Release Note"
-    ]
-
-
-def llm_generate(context):
-
-    return "Generated Answer"
-
-```
-```
-설명: 
-Query 입력
- ↓
-Embedding 생성
- ↓
-Knowledge 검색
- ↓
-LLM 답변 생성
-
-```
-
----
-
-# 4.6 Memory System 구현 계획
-
-## 4.6.1 Short-term Memory
-
-현재 사용자 요청과 Agent 실행 상태를 관리한다.
+현재 사용자 요청과 Agent 실행 상태를 관리합니다.
 
 저장 데이터:
 
@@ -1347,11 +1336,12 @@ LLM 답변 생성
 * Workflow Resume
 * Context 유지
 
+
 ---
 
-## 4.6.2 Long-term Memory
+### 3.5.2 Long-term Memory
 
-지속적으로 활용 가능한 지식 정보를 저장한다.
+지속적으로 활용 가능한 지식 정보를 저장합니다.
 
 저장 데이터:
 
@@ -1362,75 +1352,111 @@ LLM 답변 생성
 
 저장소:
 
-* Milvus
+* Sqlite
 
-## 4.6.3 Memory 처리 예시
+### 3.5.3 Memory 처리 예시
 
-Conversation Memory는 Redis 기반으로 관리하며 Agent 실행 Context를 유지한다.
+Conversation Memory는 Redis 기반으로 관리하며 Agent 실행 Context를 유지합니다.
 
 ```python
-memory = {}
+from typing import Optional
+from langgraph.checkpoint.redis import RedisSaver
+from langgraph.checkpoint.memory import MemorySaver
+
+# ==========================================
+# 1. 환경별 Checkpointer 설정 (한 줄만 바꾸면 됨)
+# ==========================================
+try:
+    # 프로덕션 환경: Redis 연결 객체를 넣어줍니다.
+    # checkpointer = RedisSaver(conn=redis_connection)
+    checkpointer = None  # 예시에서는 일단 비워둡니다.
+except Exception:
+    checkpointer = None
+
+# 개발/테스트 환경: Redis 없이 메모리만 사용
+if checkpointer is None:
+    checkpointer = MemorySaver()
 
 
-def save_memory(
-    user_id,
-    data
-):
+# ==========================================
+# 2. 기존 함수와 동일한 인터페이스 (어댑터 역할)
+# ==========================================
+def save_memory(user_id: str, data: dict) -> None:
+    """사용자별 대화 맥락을 저장합니다."""
+    # thread_id에 user_id를 넣으면 사용자별로 구분됩니다.
+    config = {"configurable": {"thread_id": user_id}}
 
-    memory[user_id] = data
-
-
-
-def load_memory(
-    user_id
-):
-
-    return memory.get(
-        user_id
-    )
-
-
-save_memory(
-    "user01",
-    {
-        "query":"Lot 관리 기능"
+    # Checkpointer가 이해하는 간단한 포맷
+    checkpoint = {
+        "channel_values": {"context": data}
     }
-)
+
+    # 저장 (내부적으로 Redis 또는 메모리에 기록)
+    checkpointer.put(config, checkpoint, {},
+{})
 
 
-context = load_memory(
-    "user01"
-)
+def load_memory(user_id: str) -> Optional[dict]:
+    """사용자별 대화 맥락을 불러옵니다."""
+    config = {"configurable": {"thread_id": user_id}}
 
+    # 저장된 checkpoint 조회
+    saved = checkpointer.get_tuple(config)
+    if saved is None:
+        return None
+
+    # 실제 넣었던 데이터만 꺼내서 반환
+    return saved.checkpoint.get("channel_values", {}).get("context")
+
+
+# ==========================================
+# 3. 사용 예시 (기존과 완전히 동일)
+# ==========================================
+
+# ---- 첫 번째 질문 ----
+# [사용자] "Lot 관리 기능에 대해 알려줘"
+# [Agent]  "Lot 관리는 생성, 조회, 수정 기능이 있습니다."
+
+save_memory("user01", {
+    "history": [
+        {"role": "user",     "content": "Lot 관리 기능에 대해 알려줘"},
+        {"role": "assistant", "content": "Lot 관리는 생성, 조회, 수정 기능이 있습니다."}
+    ],
+    "current_topic": "lot_management"
+})
+
+
+# ---- 두 번째 질문 ----
+# [사용자] "그럼 생성은 어떻게 해?"
+# 이 질문만 보면 "무슨 생성?" 이라고 되물어야 하지만,
+# 이전 기억이 있으면 "Lot 생성"으로 알아들을 수 있음
+
+past = load_memory("user01")  # ← 여기서 {current_topic: "lot_management", ...} 꺼냄
+
+# Agent가 짧은 질문을 이해하는 순간
+if past and past.get("current_topic") == "lot_management":
+    answer = "Lot 생성은 [메뉴 → Lot → 생성]을 눌러서 진행합니다."
+else:
+    answer = "어떤 생성을 말씀하시는 건가요?"
+
+# 대화를 이어서 저장 (다음 질문 대비)
+history = past.get("history", [])
+history.append({"role": "user",     "content": "그럼 생성은 어떻게 해?"})
+history.append({"role": "assistant", "content": answer})
+
+save_memory("user01", {
+    "history": history,
+    "current_topic": "lot_management"
+})
+
+print(context)
 ```
 
-```
-설명: 
-사용자 질문
- ↓
-Memory 저장
- ↓
-다음 질문 시 Context 활용
+## 3.6 MCP 기반 Tool 구현 계획
 
-```
+### 3.6.1 MCP 적용 목적
 
----
-
-# 4.7 MCP 기반 Tool 구현 계획
-
-## 4.7.1 MCP 적용 목적
-
-Agent와 외부 시스템 간 연결을 표준화하여 기능 확장성과 유지보수성을 확보한다.
-
-기존 구조:
-
-```
-Agent
- |
- | 직접 API 호출
- |
-System API
-```
+Agent와 외부 시스템 간 연결을 표준화하여 기능 확장성과 유지보수성을 확보합니다.
 
 개선 구조:
 
@@ -1449,20 +1475,10 @@ External Tool / API
 
 ---
 
-## 4.7.2 Tool 개발 대상
+### 3.6.3 MCP Tool 구현 예시
 
-| Tool                  | 구현 목적        |
-| --------------------- | ------------ |
-| Knowledge Search Tool | Milvus 검색 수행 |
-| LUMA API Tool         | 내부 시스템 조회    |
-| DOM Analysis Tool     | Frontend 분석  |
-| Screenshot Tool       | 화면 이미지 생성    |
-
-
-## 4.7.3 MCP Tool 구현 예시
-
-MCP Tool은 Agent가 외부 시스템 기능을 호출할 수 있도록 표준 인터페이스 형태로 제공한다.
-예시는 LUMA Search API Tool이다.
+MCP Tool은 Agent가 외부 시스템 기능을 호출할 수 있도록 표준 인터페이스 형태로 제공합니다.
+예시는 LUMA Search API Tool입니다.
 
 ```python
 from mcp.server.fastmcp import FastMCP
@@ -1496,1079 +1512,183 @@ LUMA API 호출
 결과 반환
 ```
 
----
 
-# 4.8 데이터 구축 및 관리 계획
+### 3.6.4 Confidence Check 구현 예시
 
-## 4.8.1 Knowledge Ingestion Pipeline
+#### 시나리오 A: Confidence 높음
+> **사용자**: "12345 Lot의 KT1H 값을 알려줘"  
+> **Agent**: API 검색 → `{"lot_id": "12345", "kt1h": 12.5}` 취득  
+> **답변**: "12345 Lot의 KT1H 측정값은 **12.5°C**입니다."  
+> **Confidence**: 근거 데이터 명확, 의도 일치, 구체적 수치 제시 → **통과** → 사용자 전달
 
-LUMA 내부 데이터를 자동 수집하여 Knowledge Base를 구축한다.
+#### 시나리오 B: Confidence 낮음
+> **사용자**: "12345 Lot의 품질 이상 원인을 알려줘"  
+> **Agent**: API 검색 결과 0건 (해당 Lot 이상 기록 없음)  
+> **LLM 생성**: "12345 Lot은 공정 A에서 온도 편차로 인한 미세 불량이 발생했을 수 있습니다."  
+> **Confidence**: 근거 데이터 **없음**, LLM이 데이터 없이 추측(환각) → **낮음** → 사용자에게 확인 요청
 
-처리 흐름:
-
-```mermaid
-flowchart LR
-
-A[Source Data]
-
-B[Document Parser]
-
-C[Chunking]
-
-D[Embedding]
-
-E[Vector DB]
-
-F[Agent Retrieval]
+```python
+def check_confidence(answer, source):
+    """0~1 사이 신뢰도를 계산한다"""
+    # 1. 근거 데이터가 없으면 0.3점 (거의 불가능)
+    if not source:
+        return 0.3
+    
+    # 2. 기본 점수 1.0에서 불확실한 표현이 있으면 깎는다
+    vague = ["아마도", "추정", "아마", "없어 보입니다", "모르겠습니다"]
+    if any(word in answer for word in vague):
+        return 0.5  # 불확실
+    
+    return 1.0  # 근거 있고, 확실한 표현만 사용함
 
 
-A --> B
+def respond(answer, source):
+    """신뢰도를 보고 답변할지, 되물을지 결정한다"""
+    if check_confidence(answer, source) >= 0.7:
+        return {"status": "success", "answer": answer}
+    
+    return {
+        "status": "low_confidence",
+        "answer": "확실한 데이터를 찾지 못했습니다. 조건을 다시 확인해 주세요."
+    }
 
-B --> C
 
-C --> D
+# --- 사용 예시 ---
 
-D --> E
+# 시나리오 A: 높음 (근거 O, 확실한 표현)
+print(respond("KT1H는 12.5°C입니다.", [{"lot_id": "12345", "kt1h": 12.5}]))
+# → {'status': 'success', 'answer': 'KT1H는 12.5°C입니다.'}
 
-E --> F
-
+# 시나리오 B: 낮음 (근거 X, 환각/추측)
+print(respond("아마도 온도 편차일 것입니다.", []))
+# → {'status': 'low_confidence', 'answer': '확실한 데이터를 찾지 못했습니다...'}
 ```
 
----
+## 3.7 개발 환경 및 운영 환경 구성
 
-## 4.8.2 Chunking 전략
+### 3.7.1 개발 환경
 
-문서 검색 품질 향상을 위해 의미 기반 Chunking 방식을 적용한다.
-
-적용 기준:
-
-* Header 기준 분리
-* Paragraph Boundary 유지
-* Semantic Context 보존
-
-권장 Chunk Size:
-
-* 512 ~ 1024 Token
-
----
-
-# 4.9 개발 환경 및 운영 환경 구성
-
-## 4.9.1 개발 환경
-
-| 영역              | 구성           |
-| --------------- | ------------ |
-| Language        | Python 3.11+ |
-| Backend         | FastAPI      |
-| Container       | Docker       |
-| Orchestration   | Kubernetes   |
-| Version Control | Git          |
+| 프레임워크/라이브러리 | 버전 | 용도 |
+| :--- | :--- | :--- |
+| FastAPI | 0.124.x | REST API 엔드포인트 |
+| Uvicorn | 0.38.x | ASGI 서버 |
+| Gunicorn | 23.x | 프로세스 관리 |
+| LangChain | 최신 | LLM 프레임워크 |
+| LangChain OpenAI | 1.1.x | OpenAI 호환 API 연동 |
+| LangGraph | 0.2.x (langgraph>=0.2.0) | 다단계 에이전트 플로우 (StateGraph, ReAct 로직) |
+| PyMilvus | 2.6.x | 벡터DB 클라이언트 |
+| Redis | 7.1.x | 세션/캐시 스토리지 |
+| Sentence Transformers | 5.2.x | 임베딩 모델 |
+| apscheduler | 3.x | 백그라운드 작업 스케줄러 |
+| Chainlit | 2.x (미만 3) | 대화형 UI |
+| Python-dotenv | 1.2.x | 환경 변수 관리 |
+| MCP | 1.13.x 미만 2 | MCP 프로토콜 |
+| Requests | 2.32.x | HTTP 클라이언트 |
 
 ---
 
-## 4.9.2 AI Infrastructure
 
-구성:
-
-* GPU Server 환경
-* Local LLM 지원 환경
-* Model Serving 환경
-
-지원 모델:
-
-* Enterprise LLM
-* Open Source LLM
-* Embedding Model
-
----
-
-## 4.9.3 CI/CD Pipeline
-
-개발 품질 확보를 위해 자동화된 배포 Pipeline을 구축한다.
-
-구성:
-
-```mermaid
-flowchart LR
-
-A[Source Commit]
-
-B[Build]
-
-C[Test]
-
-D[Agent Evaluation]
-
-E[Deploy]
-
-A --> B
-
-B --> C
-
-C --> D
-
-D --> E
-
-```
-
----
-
-# 4.10 기술 적용 기대 효과
+## 3.8 기술 적용 기대 효과
 
 | 적용 기술               | 기대 효과                |
 | ------------------- | -------------------- |
 | LangGraph           | 복합 Agent Workflow 구현 |
-| RAG                 | 정확한 근거 기반 답변 제공      |
-| Vector DB           | 의미 기반 지식 검색          |
 | MCP                 | Tool 확장성 확보          |
 | Memory System       | 지속적인 Context 관리      |
 | Evaluation Pipeline | Agent 품질 지속 개선       |
 
 ---
-앞의 1~4장 흐름에 맞춰 **5장. 주요 기능 개발 계획**을 개발계획서 스타일로 재구성하겠습니다.
 
-5장은 실제 고객이 가장 관심 있게 보는 부분이므로 기술 설명보다 **"사용자가 무엇을 하고 → Agent가 어떻게 처리하고 → 어떤 결과를 제공하는지"** 중심으로 작성합니다.
+# 4장.
 
----
-
-# 5장. 주요 기능 개발 계획
-
-# 5.1 검색 내 검색 개발 계획
-
-## 5.1.1 기능 개요
-
-검색 내 검색는 사용자가 자연어 형태로 LUMA 시스템 정보를 질의하면 Agent가 질문 의도를 분석하고, 관련 지식 및 시스템 데이터를 검색하여 답변을 제공하는 지능형 검색 서비스이다.
-
-기존 검색 방식은 사용자가 특정 키워드를 입력하고 검색 결과를 직접 확인하는 방식이었다.
-
-하지만 실제 업무에서는 사용자가 원하는 정보가 단일 문서에 존재하지 않고 여러 데이터에 분산되어 있어 정보 분석 과정이 필요하다.
-
-본 기능에서는 RAG 기반 검색 기술과 Agent Reasoning을 적용하여 사용자의 질문 의도를 이해하고 관련 정보를 종합하여 답변을 생성한다.
-
----
-
-## 5.1.2 기존 검색 방식과 개선 방식
-
-### 기존 방식
-
-```mermaid
-flowchart LR
-
-A[사용자 키워드 입력]
-
-B[문서 검색]
-
-C[검색 결과 확인]
-
-D[사용자 직접 분석]
-
-
-A --> B
-
-B --> C
-
-C --> D
+## 4.1 gaia-luma-ai-agent-framework 기반 디렉터리 구조
 
 ```
-
-문제점:
-
-* 정확한 검색어 입력 필요
-* 관련 문서 직접 확인 필요
-* 복합 질문 처리 어려움
-* 업무 Context 반영 부족
-
----
-
-### 개선 방식 (Agent 기반 검색)
-
-```mermaid
-flowchart LR
-
-A[사용자 자연어 질문]
-
-B[Query Understanding]
-
-C[Intent 분석]
-
-D[Knowledge Search]
-
-E[System Data 조회]
-
-F[정보 통합]
-
-G[답변 생성]
-
-H[Confidence Check]
-
-
-A --> B
-
-B --> C
-
-C --> D
-
-C --> E
-
-D --> F
-
-E --> F
-
-F --> G
-
-G --> H
-
+gaia-luma-ai-agent-framework/
+│
+├── app.py                          # 루트 진입점, GaiaService.init
+├── config.yml                      # LUMA_API_BASE_URL, LLM 설정, 파일 설정
+├── requirements.txt                # 의존성 리스트
+├── pyproject.toml                  # 프로젝트 메타데이터
+│
+├── src/
+│   ├── __init__.py
+│   │
+│   ├── gaia/
+│   │   ├── core.py                 # GaiaService: FastAPI 앱 빌드, A2A 라우팅, 미들웨어
+│   │   └── ...
+│   │
+│   ├── common/
+│   │   ├── __init__.py
+│   │   ├── response_formatter.py   # SSE 스트리밍, graph 실행 헬퍼
+│   │   ├── return_node.py          # GaiaReturnNode, GaiaGraphBuilder
+│   │   ├── return_schema.py        # 상태 정규화, metadata 추출
+│   │   ├── config.py               # config.yml 로드, Pydantic Settings
+│   │   └── s3_file.py              # S3 서명 URL, 파일 라우팅
+│   │
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── llm_core.py             # LLM 추론 추상화 (ChatOpenAI wrapper)
+│   │   ├── param_extractor.py      # 임베딩 기반 파라미터 추출
+│   │   ├── retriever.py            # Milvus 벡터 검색
+│   │   ├── semantic_matcher.py     # 의미 기반 도구 매칭
+│   │   ├── document_parser.py      # 문서 파서
+│   │   └── session_memory.py       # 세션 메모리
+│   │
+│   ├── tools/
+│   │   ├── __init__.py
+│   │   ├── luma_tools.py           # LangChain @tool 도구 16개 정의
+│   │   ├── luma_api_mapper.py      # LumApiMapper 싱글톤, API 매핑
+│   │   ├── luma_param_validator.py # 동적 파라미터 검증
+│   │   └── luma_web_ui_mapper.py   # 웹 UI URL 매핑
+│   │
+│   ├── workflows/
+│   │   ├── __init__.py
+│
+│   ├── agentic_state.py        # AgentState TypedDict 정의
+│   │   └── luma/
+│   │       ├── __init__.py
+│   │       ├── luma_react_legacy.py # 메인 ReAct 워크플로우 (StateGraph)
+│   │       ├── orchestrator.py     # 4단계 StateGraph (intake→plan→act_observe→verify_route)
+│   │       └── ...
+│   │
+│   ├── routers/
+│   │   ├── __init__.py             # 라우터 결합
+│   │   ├── gaia_router.py          # Gaia 메인 API 라우터
+│   │   ├── api_router.py           # LUMA API 프록시 라우터
+│   │   ├── a2a_router.py           # A2A 프로토콜 라우터
+│   │   └── chat/
+│   │       └── module.py           # 워크플로우 모듈 로딩
+│   │
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   ├── classifier.py           # RequestClassifier
+│   │   ├── user_session.py         # 세션 관리
+│   │   └── openinference_workaround.py # tool_calls 복구 패치
+│   │
+│   └── ...
+│
+├── memory/                         # 날짜별 메모리 파일 디렉토리
+├── docs/                           # 프로젝트 문서
+│   └── WORKFLOW_DEVELOPMENT_GUIDE.md
+│   └── VALIDATION_GUIDE.md
+└── ...
 ```
 
----
 
-# 5.1.3 주요 개발 기능
+## 4.2 config.yaml
 
-## 1) Natural Language Query Processing
-
-사용자의 자연어 요청을 분석하여 검색 목적과 필요한 데이터를 판단한다.
-
-처리 항목:
-
-* 사용자 Intent 분석
-* Entity 추출
-* 검색 조건 생성
-* Query Rewrite
-
-예시:
-
-사용자 입력:
-
-> "최근 변경된 Lot 관리 기능 사용법 알려줘"
-
-Agent 분석:
-
+## LLM Endpoint 
 ```
-Intent:
-기능 사용 방법 조회
-
-Entity:
-Lot Management
-
-조건:
-최근 변경 사항
-
-검색 대상:
-- Manual
-- Release Note
-- Feature Document
-
+PRIVATE_LLM_MODEL_NAME: "gaia-GLM-5.2" 
+PRIVATE_LLM_ENDPOINT: "http://hcp.llm.skhynix.com/v1" 
+PRIVATE_LLM_API_KEY: "" 
+ 
+## 임베딩 모델 (ko_sbert_nli_st) 
+## 서버 실행 시 사전 로드 — semantic_matcher, param_extractor, retriever에서 사용 
+EMBEDDING_MODEL_PATH: "C:\\model\\ko_sbert_nli_st" 
+ 
+## Pheonix관련 
+PHOENIX_ENDPOINT: "http://gaia-luma-ai-agent-phoenix.aipp02.skhynix.com/v1/traces" 
+PHOENIX_API_KEY: ""
 ```
-
----
-
-## 2) Multi Source Knowledge Retrieval
-
-Agent는 단일 데이터 소스가 아닌 다양한 정보를 조합하여 답변을 생성한다.
-
-검색 대상:
-
-| 데이터          | 활용 목적    |
-| ------------ | -------- |
-| LUMA Manual  | 기능 사용 방법 |
-| 업무 문서        | 업무 절차 확인 |
-| Release Note | 변경 사항 확인 |
-| 장애 이력        | 문제 해결 사례 |
-
----
-
-## 3) Hybrid Search 적용
-
-검색 정확도를 높이기 위해 의미 기반 검색과 키워드 기반 검색을 결합한다.
-
-```mermaid
-flowchart LR
-
-A[Query]
-
-B[Embedding 생성]
-
-C[Dense Vector Search]
-
-D[Keyword Search]
-
-E[Hybrid Merge]
-
-F[Reranking]
-
-G[Context 생성]
-
-H[LLM Answer]
-
-
-A --> B
-
-B --> C
-
-A --> D
-
-C --> E
-
-D --> E
-
-E --> F
-
-F --> G
-
-G --> H
-
-```
-
----
-
-## 4) Conversation Memory 기반 연속 질의 지원
-
-사용자의 이전 대화 Context를 유지하여 연속적인 질의를 지원한다.
-
-예:
-
-사용자:
-
-> "Lot 관리 기능 알려줘"
-
-Agent:
-
-> "Lot 관리 기능은 다음과 같습니다..."
-
-사용자:
-
-> "그중 이력 조회 방법은?"
-
-Agent:
-
-이전 질문의 Lot 관리 Context를 활용하여 이력 조회 방법 제공
-
----
-
-# 5.1.4 Search Agent 처리 시나리오
-
-```mermaid
-sequenceDiagram
-
-participant User
-participant Agent
-participant Search
-participant VectorDB
-participant LLM
-
-User->>Agent: Lot 불량 원인 알려줘
-
-Agent->>Agent: Intent 분석
-
-Agent->>Search: 관련 정보 요청
-
-Search->>VectorDB: Knowledge 검색
-
-VectorDB-->>Search: 검색 Context 반환
-
-Search-->>Agent: 검색 결과 전달
-
-Agent->>LLM: Context 기반 답변 생성
-
-LLM-->>User: 분석 결과 제공
-
-```
-
----
-
-<br>
-
-# 5.2 매뉴얼 자동화 개발 계획
-
-## 5.2.1 기능 개요
-
-매뉴얼 자동화은 LUMA 시스템의 Frontend 변경 사항을 자동 분석하고 사용자 매뉴얼을 생성하는 기능이다.
-
-기존에는 화면 변경 시 담당자가 직접 화면을 확인하고 문서를 작성하였다.
-
-본 기능에서는 Source Code 분석, UI 실행 분석, Screenshot 생성, LLM 기반 문서화를 자동화하여 최신 매뉴얼을 지속적으로 유지한다.
-
----
-
-# 5.2.2 기존 방식과 개선 방식
-
-## 기존 Manual 작성 방식
-
-```mermaid
-flowchart LR
-
-A[개발 변경]
-
-B[담당자 화면 확인]
-
-C[화면 캡처]
-
-D[문서 작성]
-
-E[배포]
-
-
-A --> B
-
-B --> C
-
-C --> D
-
-D --> E
-
-```
-
-문제점:
-
-* 작성 시간 증가
-* 담당자 경험 의존
-* 변경 누락 가능
-* 최신 상태 유지 어려움
-
----
-
-## Agent 기반 자동 생성 방식
-
-```mermaid
-flowchart LR
-
-A[Frontend Source]
-
-B[Code Analysis]
-
-C[Component Metadata 추출]
-
-D[UI 실행 분석]
-
-E[Screenshot 생성]
-
-F[User Flow 분석]
-
-G[Manual Generation]
-
-H[Knowledge 등록]
-
-
-A --> B
-
-B --> C
-
-C --> D
-
-D --> E
-
-D --> F
-
-E --> G
-
-F --> G
-
-G --> H
-
-```
-
----
-
-# 5.2.3 주요 개발 기능
-
-## 1) Frontend Component 분석
-
-Frontend 소스를 분석하여 화면 구성 요소를 자동 추출한다.
-
-분석 대상:
-
-* React Component
-* Page Routing
-* Button
-* Input Component
-* Table
-* Popup
-* API 호출 구조
-
----
-
-## 2) UI 실행 기반 분석
-
-코드 분석만으로 부족한 실제 화면 동작 정보를 확보하기 위해 Headless Browser 기반 실행 분석을 수행한다.
-
-적용 기술:
-
-* Playwright
-* DOM Parser
-
-추출 정보:
-
-| 항목         | 내용         |
-| ---------- | ---------- |
-| Screen     | 화면 구조      |
-| Component  | UI 요소      |
-| Action     | 사용자 이벤트    |
-| Navigation | 화면 이동      |
-| API        | Backend 연계 |
-
----
-
-## 3) 사용자 Workflow 자동 생성
-
-UI 요소와 Action 정보를 분석하여 사용자가 기능을 수행하는 절차를 생성한다.
-
-예:
-
-```
-1. 메뉴 선택
-2. 검색 조건 입력
-3. 조회 버튼 클릭
-4. 결과 확인
-
-```
-
----
-
-## 4) AI 기반 Manual 생성
-
-LLM을 활용하여 분석 결과를 사용자 친화적인 매뉴얼 형태로 변환한다.
-
-생성 내용:
-
-* 기능 설명
-* 화면 설명
-* 사용 절차
-* 주의 사항
-* 이미지 설명
-
-출력 형식:
-
-* HTML
-* Markdown
-* Knowledge Document
-
----
-
-# 5.2.4 Manual Agent 처리 시나리오
-
-```mermaid
-sequenceDiagram
-
-participant Developer
-participant Agent
-participant Frontend
-participant Browser
-participant LLM
-
-Developer->>Agent: 신규 기능 분석 요청
-
-Agent->>Frontend: Source 분석
-
-Frontend-->>Agent: Component 정보 반환
-
-Agent->>Browser: 화면 실행
-
-Browser-->>Agent: DOM/Screenshot 반환
-
-Agent->>LLM: Manual 생성 요청
-
-LLM-->>Agent: HTML Manual 생성
-
-Agent-->>Developer: 최종 Manual 제공
-
-```
-
----
-
-# 5.3 Agent 기능 통합 Workflow
-
-LUMA Agent는 Search Agent와 Manual Agent를 독립적으로 운영하면서 Orchestrator를 통해 통합 관리한다.
-
-```mermaid
-flowchart TB
-
-A[User Request]
-
-B[Agent Orchestrator]
-
-C{Intent 판단}
-
-D[Search Agent]
-
-E[Manual Agent]
-
-F[Tool Layer]
-
-G[Memory Layer]
-
-H[Quality Check]
-
-I[Response]
-
-
-A --> B
-
-B --> C
-
-C --> D
-
-C --> E
-
-D --> F
-
-E --> F
-
-F --> G
-
-G --> H
-
-H --> I
-
-```
-
----
-
-# 5.4 단계별 개발 목표
-
-| 단계  | 개발 내용                | 목표                 |
-| --- | -------------------- | ------------------ |
-| 1단계 | Search RAG 구현        | LUMA 지식 검색 자동화     |
-| 2단계 | Agent Workflow 구현    | Task 기반 실행 자동화     |
-| 3단계 | Manual Agent 구현      | 매뉴얼 생성 자동화         |
-| 4단계 | Multi-Agent 통합       | 복합 업무 처리           |
-| 5단계 | Memory/Evaluation 적용 | 지속 개선 가능한 Agent 운영 |
-
----
-
-이렇게 작성하면 5장은 **"기능 요구사항 + 개발 방법 + Agent 동작 시나리오"** 역할을 하게 됩니다.
-
-다음 **6장 테스트 및 품질 계획**에서는 일반 SI 테스트보다 AI Agent 특성에 맞춰:
-
-* 기능 테스트
-* RAG 평가
-* Hallucination 검증
-* Agent Workflow 테스트
-* 성능 테스트
-* 운영 모니터링
-
-구조로 가는 것이 맞습니다.
-
----
-
-# 6장. 테스트 및 품질 계획
-
-## 6.1 Agent 품질 검증
-
-* **Ragas Metrics 활용:**
-* **Faithfulness:** 답변의 환각 여부 측정.
-* **Answer Relevance:** 사용자 질의 대비 답변의 적절성 평가.
-* **Context Recall & Precision:** Retrieval 성능 검증.
-앞 장들과 동일한 개발계획서 스타일로 **6장. 테스트 및 품질 계획**을 구성하겠습니다.
-
-AI Agent 프로젝트는 일반 SI 시스템과 달리 단순 기능 정상 여부뿐 아니라 **답변 품질, 검색 정확도, Workflow 안정성, 환각 방지**까지 검증해야 하므로 품질 영역을 별도로 구성합니다.
-
----
-
-# 6장. 테스트 및 품질 계획
-
-# 6.1 품질 검증 방향
-
-LUMA Agent는 기존 애플리케이션과 달리 동일한 입력에도 생성 결과가 달라질 수 있는 AI 시스템 특성을 가지고 있다.
-
-따라서 기능 정상 여부뿐 아니라 다음 항목을 종합적으로 검증한다.
-
-* Agent Workflow 정상 수행 여부
-* 검색 결과의 정확성
-* 생성 답변의 신뢰성
-* Tool 실행 안정성
-* 응답 성능 및 운영 가능성
-
-이를 위해 **Functional Test + AI Quality Evaluation + Performance Test** 체계를 구축한다.
-
----
-
-# 6.2 Agent 품질 평가 계획
-
-## 6.2.1 RAG 품질 평가
-
-검색 내 검색 기능은 검색 결과와 생성 답변 품질을 정량적으로 평가한다.
-
-평가 Framework:
-
-* Ragas
-* Custom Evaluation Dataset
-
----
-
-## 주요 평가 지표
-
-| 평가 항목             | 설명                     | 목표                |
-| ----------------- | ---------------------- | ----------------- |
-| Faithfulness      | 검색 Context 기반 답변 생성 여부 | Hallucination 최소화 |
-| Answer Relevance  | 질문 의도와 답변 일치도          | 정확한 답변 제공         |
-| Context Precision | 검색 결과 중 관련 정보 비율       | Retrieval 품질 향상   |
-| Context Recall    | 필요한 정보 검색 여부           | 정보 누락 방지          |
-
----
-
-## 평가 흐름
-
-```mermaid id="j8wr4s"
-flowchart LR
-
-A[Test Question]
-
-B[Agent Execution]
-
-C[Retrieval Result]
-
-D[Generated Answer]
-
-E[Evaluation Model]
-
-F[Quality Score]
-
-A --> B
-
-B --> C
-
-C --> D
-
-D --> E
-
-E --> F
-
-```
-
----
-
-# 6.2.2 Agent Workflow 테스트
-
-LUMA Agent는 LangGraph 기반 Workflow 구조이므로 각 Node와 Routing 조건을 검증한다.
-
-검증 대상:
-
-* Intent Classification 결과
-* Agent Routing 정상 여부
-* Tool 호출 조건
-* Retry Loop 동작
-* Error Recovery 처리
-
----
-
-## Workflow 테스트 시나리오
-
-예)
-
-### 정상 처리
-
-```mermaid id="x3q9tr"
-flowchart LR
-
-A[User Request]
-
-B[Intent Analysis]
-
-C[Search Agent]
-
-D[Quality Check]
-
-E[Response]
-
-
-A --> B
-
-B --> C
-
-C --> D
-
-D --> E
-
-```
-
----
-
-### 검색 실패 처리
-
-```mermaid id="5g9q3j"
-flowchart LR
-
-A[User Request]
-
-B[Search]
-
-C{Result Check}
-
-D[Retry Search]
-
-E[Answer]
-
-
-A --> B
-
-B --> C
-
-C -->|Fail| D
-
-D --> C
-
-C -->|Success| E
-
-```
-
----
-
-# 6.3 기능 테스트 계획
-
-## 6.3.1 Unit Test
-
-개별 Component 단위의 정상 동작을 검증한다.
-
-대상:
-
-| 대상              | 검증 내용                 |
-| --------------- | --------------------- |
-| API Module      | Request / Response 검증 |
-| Tool Function   | Input / Output 검증     |
-| Vector Search   | 검색 결과 검증              |
-| Prompt Template | 출력 Format 검증          |
-
----
-
-## 6.3.2 Integration Test
-
-Agent와 외부 시스템 간 연계 동작을 검증한다.
-
-검증 대상:
-
-* FastAPI ↔ Agent
-* Agent ↔ MCP Server
-* MCP ↔ External API
-* Agent ↔ Vector DB
-
----
-
-## 6.3.3 End-to-End Test
-
-사용자 요청부터 최종 답변까지 전체 흐름을 검증한다.
-
-테스트 예:
-
-```
-사용자 질문
-
-↓
-
-Agent Intent 분석
-
-↓
-
-Search Agent 실행
-
-↓
-
-Knowledge 검색
-
-↓
-
-답변 생성
-
-↓
-
-사용자 화면 표시
-
-```
-
----
-
-# 6.4 매뉴얼 자동화 품질 테스트
-
-매뉴얼 자동화은 생성 문서의 정확성과 최신성을 중심으로 검증한다.
-
----
-
-## 6.4.1 Frontend 분석 테스트
-
-검증 항목:
-
-* Component 추출 정확도
-* DOM 분석 결과
-* 화면 Navigation 분석
-* API Mapping 정확도
-
----
-
-## 6.4.2 Manual 생성 품질 테스트
-
-평가 항목:
-
-| 항목            | 검증 내용               |
-| ------------- | ------------------- |
-| 기능 설명 정확성     | 실제 기능과 설명 일치 여부     |
-| Step Flow 정확성 | 사용자 절차 정상 여부        |
-| Screenshot 매칭 | 이미지와 설명 연결 여부       |
-| 문서 Format     | HTML/Markdown 출력 검증 |
-
----
-
-# 6.5 성능 테스트 계획
-
-## 6.5.1 응답 성능 검증
-
-Agent 서비스 특성을 고려하여 다음 항목을 측정한다.
-
-측정 항목:
-
-* API Response Time
-* LLM Processing Time
-* Retrieval Latency
-* Tool Execution Time
-
----
-
-## 목표 성능 기준
-
-| 기능                | 목표          |
-| ----------------- | ----------- |
-| Search Response   | 평균 3초 이내    |
-| 단순 질의 응답          | 5초 이내       |
-| Manual Generation | 30초 이내      |
-| 동시 사용자 처리         | 운영 환경 기준 검증 |
-
----
-
-## 성능 테스트 구조
-
-```mermaid id="w1a2sx"
-flowchart LR
-
-A[Test Client]
-
-B[Load Generator]
-
-C[LUMA Agent API]
-
-D[Agent Workflow]
-
-E[LLM / Vector DB]
-
-
-A --> B
-
-B --> C
-
-C --> D
-
-D --> E
-
-```
-
----
-
-# 6.6 안정성 및 운영 품질 계획
-
-## 6.6.1 Error Handling 및 Fallback
-
-AI 서비스 특성상 다음 장애 상황을 고려한다.
-
-대응 방안:
-
-| 장애 상황        | 처리 방식              |
-| ------------ | ------------------ |
-| LLM 응답 실패    | Backup Model 전환    |
-| Vector DB 장애 | Cache 기반 응답        |
-| Tool 오류      | Retry 및 대체 Tool 실행 |
-| Timeout 발생   | 사용자 안내 응답          |
-
----
-
-# 6.6.2 Guardrail 검증
-
-Agent 운영 중 발생 가능한 위험 요소를 검증한다.
-
----
-
-## Input Guardrail 테스트
-
-검증 대상:
-
-* Prompt Injection
-* 개인정보 입력
-* 비정상 요청
-
----
-
-## Output Guardrail 테스트
-
-검증 대상:
-
-* 중요 정보 노출
-* 허용되지 않은 데이터 반환
-* 응답 Format 오류
-
----
-
-# 6.7 Monitoring 및 지속 개선 계획
-
-## 6.7.1 Agent Trace 관리
-
-Agent 실행 과정을 추적하여 품질 개선 및 장애 분석에 활용한다.
-
-수집 정보:
-
-* 사용자 Request
-* Prompt Input
-* LLM Response
-* Token Usage
-* Tool Execution Log
-* Workflow Trace
-
-적용 기술:
-
-* OpenTelemetry
-* LangSmith
-* Phoenix
-
----
-
-## 6.7.2 Feedback 기반 개선 Loop
-
-사용자 피드백과 운영 데이터를 활용하여 Agent 성능을 지속 개선한다.
-
-```mermaid id="t0f4jw"
-flowchart LR
-
-A[User Feedback]
-
-B[Evaluation]
-
-C[Issue Analysis]
-
-D[Prompt 개선]
-
-E[Knowledge Update]
-
-F[Agent Improvement]
-
-
-A --> B
-
-B --> C
-
-C --> D
-
-C --> E
-
-D --> F
-
-E --> F
-
-```
-
----
-
-# 6.8 운영 전환 계획
-
-## 단계별 적용
-
-| 단계       | 내용               |
-| -------- | ---------------- |
-| 개발 검증    | 내부 테스트 데이터 기반 검증 |
-| Pilot 운영 | 제한 사용자 대상 검증     |
-| 안정화      | 품질 개선 및 성능 최적화   |
-| 운영 적용    | 전체 사용자 서비스 제공    |
