@@ -427,6 +427,7 @@ flowchart TB
         A2["GaiaService\nFastAPI 앱 빌드"]:::appLayer 
         A3["A2A 프로토콜\n라우팅"]:::appLayer 
         A4["API 엔드포인트\n미들웨어 · 세션"]:::appLayer 
+        A1 ~~~ A2 ~~~ A3 ~~~ A4
     end 
      
     subgraph ENGINE_Layer ["⚙️ 워크플로우 엔진 계층"]
@@ -444,6 +445,7 @@ flowchart TB
         I2["Redis\nCheckpoint"]:::infraLayer 
         I3["OpenAI / LLM\n추론"]:::infraLayer 
         I4["LUMA API\nREST API"]:::infraLayer 
+        I1 ~~~ I2 ~~~ I3 ~~~ I4
     end 
      
     USER_Layer -->|"POST /api/luma_react\nJSON request"| APP_Layer 
@@ -884,32 +886,27 @@ fetch_process_history, compare_lot_measurements 도구로 데이터를 조회한
 
 ## 2.6 Tool 연계 설계
 
-### 2.6.1 MCP 기반 Tool Architecture
+### 2.6.1 Tool Architecture
 
-Tool 설계 원칙은 하나의 Tool은 하나의 기능만 담당하도록 설계하고, 입출력 데이터는 JSON Schema 기반 검증을 수행합니다.
+각 Tool은 입력 파라미터를 검증한 후 LUMA API 또는 내부 서비스를 호출하며, 결과를 표준화된 응답 형식으로 Agent에 반환합니다. 
 
-LUMA Agent는 MCP(Model Context Protocol)를 기반으로 외부 기능과 연결합니다.
+Tool은 Agent가 외부 시스템 기능을 호출하기 위한 실행 인터페이스로 정의합니다.
+각 Tool은 단일 업무 기능을 담당하며 입력 파라미터 검증, API 호출, 결과 변환 역할을 수행합니다.
 
-이를 통해 Agent와 Tool을 분리하고 신규 기능 추가 시 Agent 변경 없이 확장이 가능하도록 설계합니다.
+이를 통해 Agent는 Tool의 내부 구현 방식과 관계없이 동일한 인터페이스로 기능을 사용할 수 있으며, 신규 Tool 추가 시 Agent 로직 변경 없이 기능을 확장할 수 있도록 설계합니다
 
 
 ```mermaid
 flowchart LR
-
-A[Agent Core]
-
-B[MCP Server]
-
+A[Agent Orchestrator]
+B[Tool Layer]
 C[LUMA API]
-
-D[DOM Parser]
-
-
+D[Frontend Repository]
+E[Internal Service]
 A --> B
-
 B --> C
 B --> D
-
+B --> E
 ```
 
 ### 2.6.2 Tool 목록
@@ -960,42 +957,86 @@ Agent Orchestrator가 실제로 호출하는 LLM Tool의 명세는 다음과 같
 
 ## 2.7 Memory System 설계
 
-### 2.7.1 Memory 구성
+LUMA Agent는 Agent 실행 과정에서 발생하는 대화 Context와 업무 지식을 효율적으로 관리하기 위해 Short-term Memory와 Long-term Memory 구조로 분리합니다.
 
-LUMA Agent는 Agent 실행에 필요한 정보를 단기 기억과 장기 기억으로 분리하여 관리합니다.
+---
+```mermaid
+flowchart TB
+
+USER[User]
+
+ORCH[Agent Orchestrator]
+
+STM[Short-term Memory<br/>현재 대화 Context<br/>Agent State<br/>Tool Result]
+
+LTM[Long-term Memory<br/>업무 Context<br/>대화 History<br/>Agent 실행 기록]
+
+REDIS[(Redis<br/>Checkpoint)]
+
+SQLITE[(SQLite<br/>Persistent Memory)]
+
+USER --> ORCH
+
+ORCH <--> STM
+ORCH <--> LTM
+
+STM --> REDIS
+
+LTM --> SQLITE
+```
 
 ---
 
-#### Short-term Memory
+### 설명
 
-현재 대화 및 실행 상태 관리
+## Short-term Memory
 
-저장 정보:
+목적:
+
+* Agent 실행 중 필요한 현재 상태 관리
+
+저장 데이터:
 
 * Conversation Context
-* Agent State
-* Tool 실행 결과
+* Current Task State
+* Tool 호출 결과
+* Workflow 상태
 
 저장소:
 
 * Redis
 
+활용:
+
+* Multi-turn Conversation
+* Workflow Resume
+* Retry 처리
+
 ---
 
-#### Long-term Memory
+## Long-term Memory
 
-지속적으로 활용 가능한 업무 지식 저장
+목적:
 
-저장 정보:
+* 이전 업무 수행 경험과 사용자 Context를 지속적으로 관리
 
-* LUMA Manual
-* 업무 문서
-* 장애 해결 사례
-* 사용자 질의 패턴
+저장 데이터:
+
+* Conversation History
+* Agent 실행 이력
+* 사용자 업무 Context
+* 분석 결과 Metadata
 
 저장소:
 
-* Milvus Vector Database
+* SQLite
+
+활용:
+
+* 이전 대화 참조
+* 사용자 요청 Context 유지
+* Agent 실행 이력 조회
+
 
 ---
 
@@ -1024,19 +1065,69 @@ B -->|낮음| D[재검색 또는 확인 요청]
 
 ### 2.8.3 Logging 및 Trace 관리
 
-Agent 실행 과정 전체를 추적하여 장애 분석 및 품질 개선에 활용합니다.
+LUMA AI AGENT는 사용자 요청부터 최종 응답까지의 전체 실행 과정을 Trace 형태로 기록합니다.
 
-관리 항목:
+Agent는 LLM 호출, Tool 실행, Workflow 분기, Memory 조회 등 다양한 단계를 거쳐 응답을 생성하므로, 실행 이력을 체계적으로 관리해야 장애 원인 분석과 성능 개선이 가능합니다.
 
-* 사용자 요청
-* LLM Input / Output
-* Token 사용량
-* Tool 호출 이력
-* Workflow 실행 시간
+이를 위해 OpenTelemetry 기반의 Agent Observability 도구인 Phoenix를 적용하여 Agent 실행 정보를 실시간으로 수집하고 모니터링합니다.
 
 적용 기술:
 
 * Phoenix
+
+#### Phoenix 활용
+
+Phoenix는 Agent 실행 과정에서 생성되는 Trace 정보를 시각화하여 다음과 같은 기능을 제공한다.
+
+* Agent Workflow 실행 경로 추적
+* Node별 실행 시간 분석
+* LLM Prompt 및 Response 확인
+* Token 사용량 모니터링
+* Tool 호출 성공/실패 이력 확인
+* Memory 조회 및 활용 여부 확인
+* 예외(Exception) 발생 위치 추적
+* 실행 이력 기반 품질 개선
+
+
+#### Logging & Trace 수집 구조
+
+```
+                    사용자 요청
+                         │
+                         ▼
+               ┌─────────────────┐
+               │ Agent Orchestrator│
+               └────────┬─────────┘
+                        │
+        ┌───────────────┼────────────────┐
+        │               │                │
+        ▼               ▼                ▼
+   Search Agent    Manual Agent     Memory / Tool
+        │               │                │
+        └───────────────┼────────────────┘
+                        │
+                 LLM 응답 생성
+                        │
+                        ▼
+            ┌────────────────────────────┐
+            │       Phoenix Trace        │
+            └─────────────┬──────────────┘
+                          │
+                          ▼
+          운영 모니터링 · 장애 분석 · 성능 개선
+```
+
+#### 활용 방안
+
+- Agent 실행 흐름 및 Workflow 경로 분석
+- 장애 발생 단계 및 원인 분석
+- LLM Prompt 및 Response 품질 개선
+- Token 사용량 기반 비용 관리
+- Tool 및 외부 시스템 호출 성능 개선
+- Agent 운영 품질 향상
+
+Agent 실행 과정에서 발생하는 주요 이벤트를 Phoenix Trace로 수집합니다. 
+수집된 Trace는 Workflow 실행 경로, LLM 입출력, Token 사용량, Tool 호출 이력, Memory 접근 정보, 실행 시간 및 예외 정보를 포함하며, 운영 모니터링과 장애 분석, Prompt 및 Workflow 최적화에 활용됩니다.
 
 ---
 
@@ -1049,7 +1140,6 @@ LUMA Agent는 LLM 기반 추론 능력과 검색·데이터 처리·업무 자�
 단순히 LLM API를 호출하는 방식이 아닌, 다음 기술 요소를 조합하여 안정적인 서비스 구조를 구축합니다.
 
 * Agent Workflow Orchestration
-* MCP 기반 Tool Integration
 * Agent Evaluation 및 Monitoring
 
 이를 통해 사용자 요청 분석부터 정보 검색, Tool 실행, 결과 검증까지 전체 업무 흐름을 자동화합니다.
@@ -1249,12 +1339,20 @@ agent = graph.compile()
 # Search Agent Routing
 result1 = agent.invoke({"query": "12345 Lot 의 KT1H 값을 알려줘"})
 print(result1)
-# → {'type': 'search', 'result': 'LUMA Search Result'}
+# 출력
+# {
+#   'type': 'search', 
+#   'result': 'LUMA Search Result'
+# }
 
 # Manual Agent Routing
 result2 = agent.invoke({"query": "공정 절차 매뉴얼을 보여줘"})
 print(result2)
-# → {'type': 'manual', 'result': 'Manual Generated'}
+# 출력
+# {
+#   'type': 'manual', 
+#   'result': 'Manual Generated'
+# }
 
 ```
 
@@ -1316,43 +1414,31 @@ LUMA Agent는 모든 작업에 동일한 대형 모델을 사용하는 방식이
 
 ## 3.5 Memory System 구현 계획
 
-### 3.5.1 Short-term Memory
+### 3.5.1 Redis 기반 Short-term Memory 구현
 
-현재 사용자 요청과 Agent 실행 상태를 관리합니다.
+LangGraph Checkpoint를 활용하여 Agent Workflow 실행 상태를 Redis에 저장합니다.
+* Redis = 현재 대화(Context)
 
-저장 데이터:
-
-* Conversation History
-* Current Task State
-* Tool Execution Result
-
-저장소:
-
-* Redis
-
-활용 목적:
-
-* Multi-turn Conversation 지원
-* Workflow Resume
-* Context 유지
-
+관리 정보:
+- 현재 Node 위치
+- Message History
+- Tool Result
+- Retry Count
 
 ---
 
-### 3.5.2 Long-term Memory
+### 3.5.2 SQLite 기반 Long-term Memory 구현
 
-지속적으로 활용 가능한 지식 정보를 저장합니다.
+SQLite를 Persistent Memory 저장소로 사용하여 Agent 실행 이후에도 유지해야 하는 정보를 관리합니다.
+* SQLite = 지속적으로 보관할 업무 데이터(매뉴얼, FAQ 등)
 
-저장 데이터:
+저장 정보:
+- 사용자 대화 이력
+- 업무 Context
+- Agent 실행 결과
+- Tool 호출 기록
 
-* LUMA Knowledge
-* Manual Document
-* Solution Case
-* 사용자 질의 패턴
-
-저장소:
-
-* Sqlite
+---
 
 ### 3.5.3 Memory 처리 예시
 
@@ -1360,6 +1446,7 @@ Conversation Memory는 Redis 기반으로 관리하며 Agent 실행 Context를 �
 
 ```python
 from typing import Optional
+import sqlite3
 from langgraph.checkpoint.redis import RedisSaver
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -1379,7 +1466,22 @@ if checkpointer is None:
 
 
 # ==========================================
-# 2. 기존 함수와 동일한 인터페이스 (어댑터 역할)
+# 2. Long-term Memory(SQLite)
+# ==========================================
+conn = sqlite3.connect("memory.db")
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS manual (
+    title TEXT PRIMARY KEY,
+    content TEXT
+)
+""")
+conn.commit()
+
+
+# ==========================================
+# 3. Short-term Memory(Conversation Context 저장/조회)
 # ==========================================
 def save_memory(user_id: str, data: dict) -> None:
     """사용자별 대화 맥락을 저장합니다."""
@@ -1409,18 +1511,52 @@ def load_memory(user_id: str) -> Optional[dict]:
     return saved.checkpoint.get("channel_values", {}).get("context")
 
 
+
 # ==========================================
-# 3. 사용 예시 (기존과 완전히 동일)
+# 4. Long-term Memory(SQLite 기반 업무 지식 저장/조회)
 # ==========================================
+def save_manual(title: str, content: str):
+    cursor.execute(
+        "INSERT OR REPLACE INTO manual VALUES (?, ?)",
+        (title, content)
+    )
+    conn.commit()
+
+
+def load_manual(title: str):
+    cursor.execute(
+        "SELECT content FROM manual WHERE title=?",
+        (title,)
+    )
+
+    row = cursor.fetchone()
+
+    if row:
+        return row[0]
+
+    return None
+
+
+# ==========================================
+# 3. 사용 예시
+# ==========================================
+
+
+# ---- 사전 준비 ----
+# Long-term Memory(SQLite)에 업무 지식 저장
+save_manual(
+    "lot_management",
+    "Lot 생성은 [메뉴 → Lot → 생성]을 선택한 후 필수 정보를 입력하여 등록합니다."
+)
+
 
 # ---- 첫 번째 질문 ----
 # [사용자] "Lot 관리 기능에 대해 알려줘"
-# [Agent]  "Lot 관리는 생성, 조회, 수정 기능이 있습니다."
 
 save_memory("user01", {
     "history": [
-        {"role": "user",     "content": "Lot 관리 기능에 대해 알려줘"},
-        {"role": "assistant", "content": "Lot 관리는 생성, 조회, 수정 기능이 있습니다."}
+        {"role": "user", "content": "Lot 관리 기능에 대해 알려줘"},
+        {"role": "assistant", "content": "Lot 관리 기능은 생성, 조회, 수정 기능을 제공합니다."}
     ],
     "current_topic": "lot_management"
 })
@@ -1428,20 +1564,25 @@ save_memory("user01", {
 
 # ---- 두 번째 질문 ----
 # [사용자] "그럼 생성은 어떻게 해?"
-# 이 질문만 보면 "무슨 생성?" 이라고 되물어야 하지만,
-# 이전 기억이 있으면 "Lot 생성"으로 알아들을 수 있음
 
-past = load_memory("user01")  # ← 여기서 {current_topic: "lot_management", ...} 꺼냄
+# 1. Short-term Memory에서 현재 대화 Context 조회
+past = load_memory("user01")
 
-# Agent가 짧은 질문을 이해하는 순간
 if past and past.get("current_topic") == "lot_management":
-    answer = "Lot 생성은 [메뉴 → Lot → 생성]을 눌러서 진행합니다."
+
+    # 2. Long-term Memory(SQLite)에서 업무 지식 조회
+    answer = load_manual("lot_management")
+
+    if answer is None:
+        answer = "등록된 매뉴얼이 없습니다."
+
 else:
     answer = "어떤 생성을 말씀하시는 건가요?"
 
-# 대화를 이어서 저장 (다음 질문 대비)
+
+# 3. 현재 대화를 다시 Short-term Memory에 저장
 history = past.get("history", [])
-history.append({"role": "user",     "content": "그럼 생성은 어떻게 해?"})
+history.append({"role": "user", "content": "그럼 생성은 어떻게 해?"})
 history.append({"role": "assistant", "content": answer})
 
 save_memory("user01", {
@@ -1449,69 +1590,102 @@ save_memory("user01", {
     "current_topic": "lot_management"
 })
 
-print(context)
+print(answer)
+# ================================
+# 최종 출력 결과
+# ================================
+#
+# Lot 생성은
+# [메뉴 → Lot → 생성]을 선택한 후
+# 필수 정보를 입력하여 등록합니다.
+#
+# ================================
 ```
 
-## 3.6 MCP 기반 Tool 구현 계획
+## 3.6 Tool 구현 계획
 
-### 3.6.1 MCP 적용 목적
+Tool은 LUMA API 조회, Web UI 이동, 파일 생성 등 하나의 기능만 수행하도록 설계하며, 표준화된 인터페이스를 통해 Agent Workflow에서 호출됩니다.
 
-Agent와 외부 시스템 간 연결을 표준화하여 기능 확장성과 유지보수성을 확보합니다.
+이를 통해 Agent는 Tool의 내부 구현 방식과 관계없이 동일한 방식으로 기능을 사용할 수 있으며, 신규 Tool 추가 시 Agent 로직 변경 없이 기능을 확장할 수 있습니다.
 
-개선 구조:
+### 3.6.1 Tool 구현 목적
+
+LUMA Agent는 LLM 기반 추론 영역과 실제 시스템 기능 수행 영역을 분리하기 위해 **Tool Calling Architecture**를 적용합니다.
+
+Tool Layer는 Agent Orchestrator가 외부 시스템 기능을 호출하기 위한 실행 계층으로, LUMA API 조회, 데이터 분석, Web UI Navigation, 파일 생성 등의 기능을 독립적인 Tool 단위로 제공합니다.
+
+각 Tool은 **Single Responsibility Principle(단일 책임 원칙)** 기반으로 설계하며, 명확한 Input/Output Schema를 정의하여 Agent Workflow에서 일관된 방식으로 호출될 수 있도록 구성합니다.
+
+이를 통해 다음과 같은 효과를 확보합니다.
+
+* Agent Reasoning Logic과 시스템 연계 영역 분리
+* Tool 기능 재사용성 및 유지보수성 향상
+* 신규 Tool 추가 시 Agent Core 변경 최소화
+* 표준화된 실행 결과 기반 Workflow 제어
 
 ```
-Agent
-
- |
-
-MCP Server
-
- |
-
-External Tool / API
-
+            User
+              │
+              ▼
+      Agent Orchestrator
+              │
+              ▼
+         Tool Layer
+              │
+    ┌─────────┼─────────┐
+    ▼         ▼         ▼
+Search Tool  File Tool  Web Tool
+    │         │         │
+    └─────────┼─────────┘
+              ▼
+           LUMA API
 ```
-
 ---
 
-### 3.6.3 MCP Tool 구현 예시
+### 3.6.3 Tool 구현 예시
 
-MCP Tool은 Agent가 외부 시스템 기능을 호출할 수 있도록 표준 인터페이스 형태로 제공합니다.
-예시는 LUMA Search API Tool입니다.
+#### 시나리오 A : Tool 호출 성공
+
+> **사용자** : "LOT123 검사 결과를 보여줘"
+> **Agent** : Intent 분석 → `search_lot` Tool 선택
+> **Tool** : LUMA API 조회 → `{"lot_id":"LOT123","status":"PASS","process":"AOI"}` 반환
+> **답변** : "LOT123의 검사 결과는 PASS이며 AOI 공정에서 수행되었습니다."
+
+#### 시나리오 B : Tool 호출 보류
+
+> **사용자** : "검사 결과를 보여줘"
+> **Agent** : Intent 분석 → Lot ID 누락 확인
+> **Tool** : 필수 파라미터 부족으로 Tool 호출하지 않음
+> **답변** : "조회할 Lot 번호를 입력해 주세요."
 
 ```python
-from mcp.server.fastmcp import FastMCP
+from langchain_core.tools import tool
 
+# Tool 등록
+@tool()
+def search_lot(lot_id: str):
+    """Lot 검사 결과 조회"""
 
-mcp = FastMCP(
-    "LUMA Tool"
-)
-
-
-@mcp.tool()
-def search_luma(
-    keyword
-):
-
+    # 실제 환경에서는 LUMA API 호출
     return {
-        "result":
-        "LUMA Search Data"
+        "lot_id": lot_id,
+        "status": "PASS",
+        "process": "AOI"
     }
 
-```
+
+# 사용 예시
+result = search_lot("LOT123")
+print(result)
+
+# 출력
+# {
+#     "lot_id":"LOT123",
+#     "status":"PASS",
+#     "process":"AOI"
+# }
 
 ```
-설명: 
-Agent
- ↓
-MCP Tool
- ↓
-LUMA API 호출
- ↓
-결과 반환
-```
-
 
 ### 3.6.4 Confidence Check 구현 예시
 
@@ -1557,11 +1731,19 @@ def respond(answer, source):
 
 # 시나리오 A: 높음 (근거 O, 확실한 표현)
 print(respond("KT1H는 12.5°C입니다.", [{"lot_id": "12345", "kt1h": 12.5}]))
-# → {'status': 'success', 'answer': 'KT1H는 12.5°C입니다.'}
+# 출력
+# { 
+#   'status': 'success', 
+#   'answer': 'KT1H는 12.5°C입니다.'
+# }
 
 # 시나리오 B: 낮음 (근거 X, 환각/추측)
 print(respond("아마도 온도 편차일 것입니다.", []))
-# → {'status': 'low_confidence', 'answer': '확실한 데이터를 찾지 못했습니다...'}
+# 출력
+# {
+#   'status': 'low_confidence', 
+#   'answer': '확실한 데이터를 찾지 못했습니다...'
+# }
 ```
 
 ## 3.7 개발 환경 및 운영 환경 구성
@@ -1576,13 +1758,11 @@ print(respond("아마도 온도 편차일 것입니다.", []))
 | LangChain | 최신 | LLM 프레임워크 |
 | LangChain OpenAI | 1.1.x | OpenAI 호환 API 연동 |
 | LangGraph | 0.2.x (langgraph>=0.2.0) | 다단계 에이전트 플로우 (StateGraph, ReAct 로직) |
-| PyMilvus | 2.6.x | 벡터DB 클라이언트 |
 | Redis | 7.1.x | 세션/캐시 스토리지 |
 | Sentence Transformers | 5.2.x | 임베딩 모델 |
 | apscheduler | 3.x | 백그라운드 작업 스케줄러 |
 | Chainlit | 2.x (미만 3) | 대화형 UI |
 | Python-dotenv | 1.2.x | 환경 변수 관리 |
-| MCP | 1.13.x 미만 2 | MCP 프로토콜 |
 | Requests | 2.32.x | HTTP 클라이언트 |
 
 ---
@@ -1593,13 +1773,12 @@ print(respond("아마도 온도 편차일 것입니다.", []))
 | 적용 기술               | 기대 효과                |
 | ------------------- | -------------------- |
 | LangGraph           | 복합 Agent Workflow 구현 |
-| MCP                 | Tool 확장성 확보          |
 | Memory System       | 지속적인 Context 관리      |
 | Evaluation Pipeline | Agent 품질 지속 개선       |
 
 ---
 
-# 4장.
+# 4장. 소프트웨어 구조 설계
 
 ## 4.1 gaia-luma-ai-agent-framework 기반 디렉터리 구조
 
