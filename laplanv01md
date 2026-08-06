@@ -901,11 +901,7 @@ Agent 실행 과정에서 다음 상태 정보를 관리합니다.
 
 ### 3.3.3 LangGraph Workflow 구현 예시
 
-LUMA Agent Workflow는 LangGraph StateGraph 기반으로 구현하며, 각 작업 단계를 Node로 정의합니다.
-
-Workflow는 사용자 요청 분석 결과에 따라 Search Agent 또는 Manual Agent로 Routing 됩니다.
-
-구현 예시는 다음과 같습니다.
+LangGraph StateGraph 기반으로 사용자 질의의 Intent(검색/매뉴얼)를 분류하여 조건부 라우팅하는 Agent Workflow 구현하는 코드입니다.
 
 #### 시나리오 A: Search Agent Routing
 > **사용자**: "12345 Lot 의 KT1H 값을 알려줘"  
@@ -1052,7 +1048,7 @@ SQLite를 Persistent Memory 저장소로 사용하여 Agent 실행 이후에도 
 
 ### 3.5.3 Memory 처리 구현 예시
 
-Conversation Memory는 Redis 기반으로 관리하며 Agent 실행 Context를 유지합니다.
+LangGraph 기반 Agent의 대화 맥락을 Redis(단기)와 SQLite(장기)로 분리 관리하며, 7턴 초과 시 자동으로 이전 대화를 Redis에서 SQLite로 이관하는 Memory 관리 구현하는 코드입니다. 
 
 ```python
 from typing import Optional
@@ -1308,6 +1304,8 @@ Agent Orchestrator가 실제로 호출하는 LLM Tool의 명세는 다음과 같
 
 ### 3.6.2 Tool 구현 예시
 
+@tool 기반 Agent가 사용자 질의에서 Lot ID 파라미터를 추출하여 Tool Call을 수행하고, 필수 파라미터 누락 시 Tool Execution을 보류하고 사용자에게 재입력을 요구하는 예외 처리하는 코드입니다.
+
 #### 시나리오 A : Tool 호출 성공
 
 > **사용자** : "LOT123 검사 결과를 보여줘"  
@@ -1352,6 +1350,8 @@ print(result)
 ```
 
 ## 3.7 Confidence Check 구현 예시
+
+API 검색 결과(Source Data) 존재 여부와 불확실 표현(Vague Expression) 여부를 기반으로 Confidence Score를 계산하여, 임계치(0.7) 미만일 경우 Fallback 응답으로 전환하는 검증 코드입니다.
 
 #### 시나리오 A: Confidence 높음
 > **사용자**: "12345 Lot의 KT1H 값을 알려줘"  
