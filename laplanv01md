@@ -790,8 +790,8 @@ Phoenix는 Agent 실행 과정에서 생성되는 Trace 정보를 시각화하�
                     │
     ┌────────────────────────────────┐
     ▼                                ▼
-Search Agent   (Memory/Tool)  Manual Agent
-    │                                │
+Search Agent                   Manual Agent
+    │          (Memory/Tool)         │
     └────────────────────────────────┘
                     │
                 LLM 응답 생성
