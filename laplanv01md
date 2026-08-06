@@ -713,7 +713,7 @@ LUMA Agent는 사용자와 여러 번 대화(Multi-turn)할 수 있어야 합니
 flowchart LR
     USER[User 입력] --> TURN{현재 Turn 수}
     TURN -->|"1~7턴"| REDIS[(Redis<br/>최근 대화 Context)]
-    %%TURN -->|"8턴 이상"| SQLITE[(SQLite<br/>과거 대화 이력)]%%
+    SQLITE[(SQLite<br/>과거 대화 이력)]
     REDIS -.->|"7턴 초과 시<br/>이전 대화 이관"| SQLITE
     SQLITE -.->|"이전 대화 참조 필요 시"| REDIS
 ```
