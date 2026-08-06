@@ -52,5 +52,15 @@
 - 기술 스택 업데이트
 
 - 2.1.2 1) 부터 이해 후 필요없으면 줄이거나 삭제
+
+
+
+// phoeninx
+(input)
+{"query": "TE3AD72 lot의 KT3C TEST 공정 트렌드 차트 보여줘", "user_id": "anonymous:e91166aad575c97b", "session_id": "202017e9-82e9-4b6c-a94f-caf51efc4f7d", "gaia_session_name": "", "gaia_input_channel": "chainlit", "chat_type": "default", "a2a_remote_urls": [], "is_super_agent": false, "main_model_name": null, "session_system_prompt": null, "context_lot_ids": [], "context_oper_desc": "", "context_lot_cd": "", "trace_id": "7c79e41f-7dc3-4996-88e2-da61da02797c"}
+(output)
+{"messages": [{"type": "ai", "data": {"content": "TE3AD72 Lot의 KT3C 공정 트렌드 차트를 열어드리겠습니다.", "additional_kwargs": {"tool_calls": [{"id": "chatcmpl-tool-9af3e27ec4a4708a", "function": {"arguments": "{\"lot_id\": [\"TE3AD72\"], \"oper_desc\": \"KT3C\"}", "name": "open_trend_chart"}, "type": "function"}], "refusal": null}, "response_metadata": {"token_usage": {"completion_tokens": 54, "prompt_tokens": 7271, "total_tokens": 7325, "completion_tokens_details": null, "prompt_tokens_details": {"audio_tokens": null, "cached_tokens": 0}}, "model_name": "gaia-GLM-5.2", "system_fingerprint": "vllm-0.24.0-tp8-ep-b1589b0c", "id": "chatcmpl-cff201ab1b4c777733d99cae747f9d43", "service_tier": null, "finish_reason": "tool_calls", "logprobs": null}, "type": "ai", "name": null, "id": "run--019fd0e1-cbec-7101-8f46-3410586103d3-0", "example": false, "tool_calls": [{"name": "open_trend_chart", "args": {"lot_id": ["TE3AD72"], "oper_desc": "KT3C"}, "id": "chatcmpl-tool-9af3e27ec4a4708a", "type": "tool_call"}], "invalid_tool_calls": [], "usage_metadata": {"input_tokens": 7271, "output_tokens": 54, "total_tokens": 7325, "input_token_details": {"cache_read": 0}, "output_token_details": {}}}}, {"type": "tool", "data": {"content": "http://luma.skhynix.com/Chart/ViewTrendChart?paramKey=1b38d025bdf5a906", "additional_kwargs": {}, "response_metadata": {}, "type": "tool", "name": null, "id": "a0c92cbb-114f-4d5b-8bfc-c589bfc79263", "tool_call_id": "chatcmpl-tool-9af3e27ec4a4708a", "artifact": null, "status": "success"}}], "current_agent": "analytic", "tool_calls": [], "tool_results": [{"tool_call_id": "chatcmpl-tool-9af3e27ec4a4708a", "tool_name": "open_trend_chart", "error": false, "content": "http://luma.skhynix.com/Chart/ViewTrendChart?paramKey=1b38d025bdf5a906"}], "validation_error": null, "output": "**조회 결과**\n\n- open_trend_chart: 조회 완료\n\n📋 **필수 파라미터가 부족합니다.**\n\n다음 정보를 입력해 주세요:\n\n  - **카테고리** (catg_nm): 카테고리/파라미터 이름 (콤마 구분) 예시: `111,112`\n\n💡 예시: `TE3AD72 lot의 KT3C TEST 공정 트렌드 차트 보여줘`\n\n**🔗 LUMA 웹 UI:**\n- [Trend Chart](http://luma.skhynix.com/Chart/ViewTrendChart?paramKey=1b38d025bdf5a906)", "iteration": 1, "retry_count": 0, "user_id": "anonymous:e91166aad575c97b", "session_id": "202017e9-82e9-4b6c-a94f-caf51efc4f7d", "confidence": 0.85, "query": "TE3AD72 lot의 KT3C TEST 공정 트렌드 차트 보여줘", "lot_ids": ["TE3AD72"], "lot_cd": "", "oper_desc": "KT3C", "page_size_hint": 200}
+
+
 - 글자 볼드 처리 통일
 
