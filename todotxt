@@ -36,6 +36,8 @@
 
 
 
+
+
 // 설명
 임베딩 모델은 파라미터 가져오고, 복잡 추론은 GLM5.2이 하는 방식으로 운영
 임베딩 모델 lazy아닌 가이아 프레임워크 서버 실행 시 실행한다
@@ -61,4 +63,31 @@
 {"messages": [{"type": "ai", "data": {"content": "TE3AD72 Lot의 KT3C 공정 트렌드 차트를 열어드리겠습니다.", "additional_kwargs": {"tool_calls": [{"id": "chatcmpl-tool-9af3e27ec4a4708a", "function": {"arguments": "{\"lot_id\": [\"TE3AD72\"], \"oper_desc\": \"KT3C\"}", "name": "open_trend_chart"}, "type": "function"}], "refusal": null}, "response_metadata": {"token_usage": {"completion_tokens": 54, "prompt_tokens": 7271, "total_tokens": 7325, "completion_tokens_details": null, "prompt_tokens_details": {"audio_tokens": null, "cached_tokens": 0}}, "model_name": "gaia-GLM-5.2", "system_fingerprint": "vllm-0.24.0-tp8-ep-b1589b0c", "id": "chatcmpl-cff201ab1b4c777733d99cae747f9d43", "service_tier": null, "finish_reason": "tool_calls", "logprobs": null}, "type": "ai", "name": null, "id": "run--019fd0e1-cbec-7101-8f46-3410586103d3-0", "example": false, "tool_calls": [{"name": "open_trend_chart", "args": {"lot_id": ["TE3AD72"], "oper_desc": "KT3C"}, "id": "chatcmpl-tool-9af3e27ec4a4708a", "type": "tool_call"}], "invalid_tool_calls": [], "usage_metadata": {"input_tokens": 7271, "output_tokens": 54, "total_tokens": 7325, "input_token_details": {"cache_read": 0}, "output_token_details": {}}}}, {"type": "tool", "data": {"content": "http://luma.skhynix.com/Chart/ViewTrendChart?paramKey=1b38d025bdf5a906", "additional_kwargs": {}, "response_metadata": {}, "type": "tool", "name": null, "id": "a0c92cbb-114f-4d5b-8bfc-c589bfc79263", "tool_call_id": "chatcmpl-tool-9af3e27ec4a4708a", "artifact": null, "status": "success"}}], "current_agent": "analytic", "tool_calls": [], "tool_results": [{"tool_call_id": "chatcmpl-tool-9af3e27ec4a4708a", "tool_name": "open_trend_chart", "error": false, "content": "http://luma.skhynix.com/Chart/ViewTrendChart?paramKey=1b38d025bdf5a906"}], "validation_error": null, "output": "**조회 결과**\n\n- open_trend_chart: 조회 완료\n\n📋 **필수 파라미터가 부족합니다.**\n\n다음 정보를 입력해 주세요:\n\n  - **카테고리** (catg_nm): 카테고리/파라미터 이름 (콤마 구분) 예시: `111,112`\n\n💡 예시: `TE3AD72 lot의 KT3C TEST 공정 트렌드 차트 보여줘`\n\n**🔗 LUMA 웹 UI:**\n- [Trend Chart](http://luma.skhynix.com/Chart/ViewTrendChart?paramKey=1b38d025bdf5a906)", "iteration": 1, "retry_count": 0, "user_id": "anonymous:e91166aad575c97b", "session_id": "202017e9-82e9-4b6c-a94f-caf51efc4f7d", "confidence": 0.85, "query": "TE3AD72 lot의 KT3C TEST 공정 트렌드 차트 보여줘", "lot_ids": ["TE3AD72"], "lot_cd": "", "oper_desc": "KT3C", "page_size_hint": 200}
 
 
-- 글자 볼드 처리 통일
+//
+- 챗봇 인텐트, 엔티티 이해 숙지 필요
+- 엔티티 수정 요청 대응 설명
+- 에이전트 하나면 컨텍스트 오류나서 역할별로 나눔 -> 의도는 오케스트레이터는 팀이다, 정확히 답변하기위해서
+- 엔티티분류에 따른 세분화 시켜서 오케스트레이터에서 어떤 에이전트 실행할지 결정이 어려운데 이 방법 설명 필요
+- 툴 표준화 근거 설명, 논문? 요즘 추세로 반영하는 근거라도
+- 숏텀 롱텀 나누는 기준 설명 -> 고객이 결정하게, 정책적인부분, 우선 우리는 기능을 만들겠다
+- 고객에 책임전가 멘션이 필요, 모르는건 고객이 결정하게 미팅 대화를 이끌어야함
+- 컨피던스 체크 -> 할루시네이션 어디까지인지 고객이 로그에 대한 기억이 남으니 보고 결정해줘야한다
+- TL은 실사용자의 피드백을 받아서 진행하겠다 대신에 챗?, 에이전트? 로그를 잘 남겨달라
+- 고객과 범위를 얘기해야겠다는 입장ㅇ 필요. 우린 대략 뼈대를 만들겠다가 애초에 목표였음
+- 테스트 어디깢 되는지 확인, 링크/매뉴얼 조회/매뉴얼생성
+- 우리는 엔티티 에이전트 필요? 질문 챗봇, 의도에 따라 결과 방향 잡아주는 것이 필요함, 좁혀나가지 못하는 상황에 상담원 연결 선택지는 챗봇의 특성임
+- 챗봇 만드는건 엔티티가 중요하다
+- 전체 시나리오를 다 알고 있는 에이전트가 있어야 한다
+- 모델 의도 설명, 임베딩모델 사용이유, LLM 사용이유
+- 장기기억의 목적은 '분류' 그런데 정답지(GT값)이 어야하는건지? 히스토리까지만 우선 저장, 추후 만족도 평가된 장기기억을 분석이 필요
+- 단기 기억 에서 장기기억으로 이관되는 턴 수를 고객에 협의 문의 필요
+- 무의미한 대화는 7턴 이상일 경우 저장하나?
+- 툴 호출 매핑 결정은  TL에 질문? -> 시스템 프롬프트 롤 정해서 진행중
+- 컨피던스 체크 평준화가 임계치, 컨피던스 스코어? 
+- 평준화 의미 설평 필요
+-임계치 0.7의 기준이 필요 고객에 문의?
+
+
+
+
+
