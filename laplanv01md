@@ -726,7 +726,7 @@ flowchart LR
 
 ### 2.7.4 Long-term Memory
 * 목적: 이전 업무 수행 경험과 사용자 Context를 지속적으로 관리
-* 저장 데이터: Conversation History (8턴 이상 과거 대화), 업무 지식 (매뉴얼, FAQ), Agent 실행 이력, 분석 결과 Metadata
+* 저장 데이터: Conversation History (N턴 이상 과거 대화), 업무 지식 (매뉴얼, FAQ), Agent 실행 이력, 분석 결과 Metadata
 * 저장소: SQLite (지속적으로 보관할 업무 데이터 | 매뉴얼, FAQ 등)
 * 활용: 이전 대화 참조, 사용자 요청 Context 유지, Agent 실행 이력 조회 
 
@@ -1049,6 +1049,17 @@ SQLite를 Persistent Memory 저장소로 사용하여 Agent 실행 이후에도 
 ### 3.5.3 Memory 처리 구현 예시
 
 LangGraph 기반 Agent의 대화 맥락을 Redis(단기)와 SQLite(장기)로 분리 관리하며, 7턴 초과 시 자동으로 이전 대화를 Redis에서 SQLite로 이관하는 Memory 관리 구현하는 코드입니다. 
+
+#### 시나리오 : 7턴 초과 시 Redis → SQLite 이관
+> **사용자** : "Lot 관리 기능에 대해 알려줘" (임의로 7턴까지 대화 진행)  
+> Memory : Redis에 7턴(14개 메시지) 저장, turn_count = 7 
+> **사용자**: 사용자가 "그럼 생성은 어떻게 해?" (Turn 8)  
+> **Agent**: current_topic = "lot_management" 확인 → Long-term Memory manual 테이블에서 업무 지식 조회  
+> Memory : turn_count = 8 → MAX_TURNS(7) 초과 → 가장 오래된 Turn 1(2개 메시지)을 SQLite conversation_history로 이관, Redis에는 최근 7턴 유지  
+> 답변 : "[이관] 2개 메시지를 SQLite로 이관했습니다." + "Lot 생성은 [메뉴 → Lot → 생성]을 선택한 후 필수 정보를 입력하여 등록합니다." 
+> **사용자** : "처음에 물어본 내용이 뭐였지?"  
+> **Agent** : Redis에는 최근 7턴만 존재 → load_archived_history("user01") 로 SQLite에서 조회  
+> 답변 : "과거 대화를 확인한 결과, [사용자: 'Lot 관리 기능에 대해 알려줘' / 어시스턴트: 'Lot 관리 기능은 생성, 조회, 수정 기능을 제공합니다.']" 
 
 ```python
 from typing import Optional
