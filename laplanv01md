@@ -712,9 +712,9 @@ LUMA Agent는 사용자와 여러 번 대화(Multi-turn)할 수 있어야 합니
 ```mermaid
 flowchart LR
     USER[User 입력] --> TURN{현재 Turn 수}
-    TURN -->|"1~7턴"| REDIS[(Redis<br/>최근 대화 Context)]
+    TURN -->|"1~N턴"| REDIS[(Redis<br/>최근 대화 Context)]
     SQLITE[(SQLite<br/>과거 대화 이력)]
-    REDIS -.->|"7턴 초과 시<br/>이전 대화 이관"| SQLITE
+    REDIS -.->|"N턴 초과 시<br/>이전 대화 이관"| SQLITE
     SQLITE -.->|"이전 대화 참조 필요 시"| REDIS
 ```
 
@@ -1322,12 +1322,17 @@ Agent Orchestrator가 실제로 호출하는 LLM Tool의 명세는 다음과 같
 
 ```python
 from langchain_core.tools import tool
+from pydantic import BaseModel, Field, ValidationError
 
-# Tool 등록
-@tool()
-def search_lot(lot_id: str):
-    """Lot 검사 결과 조회"""
+# ========== 1. Tool 정의 ==========
 
+class SearchLotInput(BaseModel):
+    """Lot 검색 입력 스키마 (필수값 명시)"""
+    lot_id: str = Field(..., description="조회할 Lot ID (필수)")
+
+@tool(args_schema=SearchLotInput)
+def search_lot(lot_id: str) -> dict:
+    """Lot 검사 결과를 LUMA API로 조회한다."""
     # 실제 환경에서는 LUMA API 호출
     return {
         "lot_id": lot_id,
@@ -1335,18 +1340,47 @@ def search_lot(lot_id: str):
         "process": "AOI"
     }
 
+# ========== 2. Agent 구현 ==========
 
-# 사용 예시
-result = search_lot("LOT123")
-print(result)
+class SearchAgent:
+    def __init__(self):
+        self.tool = search_lot
 
-# 출력
-# {
-#     "lot_id":"LOT123",
-#     "status":"PASS",
-#     "process":"AOI"
-# }
+    def _extract_params(self, user_input: str) -> dict:
+        # NOTE: 실제 에이전트에서는 LLM Tool Calling 결과를 사용합니다.
+        for token in user_input.split():
+            if token.startswith("LOT"):
+                return {"lot_id": token}
+        return {}
 
+    def run(self, user_input: str) -> str:
+        args = self._extract_params(user_input)
+
+        # --- 필수 파라미터 검증 ---
+        try:
+            self.tool.args_schema(**args)
+        except ValidationError:
+            # 시나리오 B: 필수 파라미터 부족 → Tool 호출 보류
+            return "조회할 Lot 번호를 입력해 주세요."
+
+        # --- 시나리오 A: Tool 정상 실행 ---
+        result = self.tool.invoke(args)
+        return (
+            f"{result['lot_id']}의 검사 결과는 {result['status']}이며 "
+            f"{result['process']} 공정에서 수행되었습니다."
+        )
+
+# ========== 3. 실행 예시 ==========
+
+agent = SearchAgent()
+
+# 시나리오 A
+print(agent.run("LOT123 검사 결과를 보여줘"))
+# LOT123의 검사 결과는 PASS이며 AOI 공정에서 수행되었습니다.
+
+# 시나리오 B
+print(agent.run("검사 결과를 보여줘"))
+# 조회할 Lot 번호를 입력해 주세요.
 ```
 
 ## 3.7 Confidence Check 구현 예시
