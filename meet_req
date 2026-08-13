@@ -10,7 +10,9 @@
    - 메뉴얼을 더 상세화시키는 작업 필요.  
   
 3. Vibe Coding 을 통한 Web Page 생성 (LUMA WEB과 독립된 서비스)  
-================================================================================ 
+
+====== 
+
 [[ 시나리오 ]] 
 1). 사용자 요청 (Intent) 
    - 자연어 입력: "RMA Lot 으로 KT1H 공정 Trend/Wafer Map 분석" 
@@ -53,6 +55,43 @@ SKhynix_20260812115238269.jpg
 1,2번은 금방 하실것으로 판단되어지고, 3번에 대해서 시간을 많이 투자하여 리소스 잡아주시면 될것 같습니다
 
 
+=====
+
+sequenceDiagram
+    actor 사용자 as 사용자 (김연동)
+    participant Agent as AI Agent (Orchestrator)
+    participant KB as 지식베이스 (OpenAPI.json/.md)
+    participant Sandbox as 실행 샌드박스 (agent.skhynix.com)
+    participant API as LUMA Backend API
+    participant WebPage as 생성된 Web Page
+
+    Note over Agent: 2. 의미 분석 및 보강
+    사용자->>Agent: 1. 요청: "RMA Lot 목록으로 KT1H 공정 Trend/Wafer Map 분석해줘"
+    Agent->>Agent: 의도 파악 (Entity 추출)
+
+    alt 추가 정보 필요 시
+        Agent->>사용자: "어떤 파라미터와 기간으로 분석할까요?" (질문)
+        사용자->>Agent: "두께 (Thickness), 최근 1 개월" (응답)
+    end
+
+    Note over Agent: 3. API 매핑 및 코드 생성 (Vibe Coding)
+    Agent->>KB: API 명세서 참조 (OpenAPI.json)
+    KB-->>Agent: 유효한 API 엔드포인트 및 스키마 반환
+    Agent->>Agent: Python(.py) & HTML(.html) 코드 동적 생성
+
+    Note over Agent: - Pandas 전처리 로직 포함<br/>- Plotly 시각화 코드 포함
+
+    Agent->>Sandbox: 생성된 코드 배포 (일회성 컨테이너)
+
+    Note over Sandbox: 4. 격리 환경 실행 (Sandbox)
+    Sandbox->>API: API 호출 (KT1H 데이터 요청)
+    API-->>Sandbox: Raw Data 반환
+    Sandbox->>Sandbox: 데이터 가공 (Pandas) 및 렌더링
+    Sandbox-->>WebPage: 최종 Web Page 생성
+
+    Note right of WebPage: http://agent.skhynix.com/{session}/report<br/>세션 종료 후 자동 폐기
+
+    WebPage-->>사용자: 5. 결과 전달 (URL 공유)
 
 
 
