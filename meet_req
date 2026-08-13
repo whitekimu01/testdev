@@ -52,4 +52,578 @@ SKhynix_20260812115238269.jpg
 
 1,2번은 금방 하실것으로 판단되어지고, 3번에 대해서 시간을 많이 투자하여 리소스 잡아주시면 될것 같습니다
 
+
+
+
+
+=====
+
+요구사항 분석
+
+
+아래 요구사항을 **개발자가 바로 이해하고 개발 범위를 측정할 수 있도록** 3개 모듈로 재정의하고, 1번과 3번의 관계를 명확히 분리하여 정리했습니다.
+
+---
+
+# LUMA Agent 신규/기존 요구사항 정의서
+
+## 1. 전체 개요 (Overview)
+
+LUMA Agent는 기존 단순 안내형 챗봇을 넘어, **실제 데이터를 조회하고 시각화까지 수행하는 업무 자동화 Agent**로 확장됩니다.
+
+전체 업무는 3개 모듈로 구성됩니다.
+
+| 번호 | 모듈명 | 성격 | 핵심 목표 |
+|------|--------|------|-----------|
+| **1** | **Tool Calling 기반 Data 조회** | 기존/필수 | Backend API 연동을 통한 **실시간 데이터 조회** 및 기존 LUMA WEB 화면 URL 안내 |
+| **2** | **매뉴얼 생성 & RAG 검색** | 기존/필수 | 대시보드별 **매뉴얼 자동 생성** 및 벡터 DB 저장 → Q&A 연동 |
+| **3** | **Vibe Coding 동적 Web Page 생성** | **신규/1번 고도화** | 1번에서 조회한 데이터를 바탕으로, **Agent가 직접 코드를 작성·실행하여 독립된 웹 페이지를 생성** |
+
+> **핵심 관계 정리**  
+> - **3번은 1번의 결과물을 바탕으로 한 "고도화된 결과 표현 방식"입니다.**  
+> - 1번이 먼저 완료되어야 3번의 시나리오 `(1)요청`, `(2)보강` 단계가 해결됩니다.  
+> - 1번 완료 후, 동일한 데이터를 "LUMA WEB 링크 전달"이 아닌 "AI가 직접 만든 신규 웹 페이지"로 제공하는 것이 3번입니다.
+
+---
+
+## 2. 모듈별 상세 정의
+
+### 모듈 1: Tool Calling 기반 Data 조회 (필수 선행)
+
+**목적**  
+사용자의 자연어 요청을 Backend API 호출로 변환하여 **실시간 데이터를 조회**하고, 해당 데이터를 볼 수 있는 **기존 LUMA WEB 화면의 URL을 반환**합니다.
+
+**개발 범위**
+- **API 규격 자동 참조**: Backend에서 제공하는 `OpenAPI.json` 및 `.md` 파일을 실시간으로 읽어들여 사용 가능한 엔드포인트와 파라미터 스펙을 파악
+- **자동 파라미터 매핑**: 컬럼을 개발자가 하드코딩(hard-coding)으로 수동 매핑하지 않고, OpenAPI 스펙 기반으로 Request Param을 자동 구성
+- **Hallucination 방지**: 스키마 검증을 거쳐 실제 존재하지 않는 API나 파라미터를 Agent가 지어내는 것을 차단
+- **결과 반환**: 조회 결과를 기반으로 사용자가 볼 수 있는 **LUMA WEB 페이지 링크(URL)** 전달
+
+**입/출력 예시**
+```
+[입력]  "KT1H 공정의 RMA Lot 현황 보여줘"
+[동작]  OpenAPI.json → /api/v1/rma/lot (GET) 매핑 → Param 자동 구성 → API 호출
+[출력]  "다음에서 확인 가능합니다: https://luma.skhynix.com/dashboard/rma..."
+```
+
+---
+
+### 모듈 2: 매뉴얼 생성 & RAG 검색 (필수)
+
+**목적**  
+LUMA WEB의 각 대시보드/화면에 대한 **사용자 매뉴얼을 자동 생성**하고, 이를 벡터 DB에 저장하여 **Q&A(질의응답)**에 활용합니다.
+
+**개발 범위**
+- **매뉴얼 자동 생성 (배치)**: 정해진 스케줄(예: 매일 자정)에 Frontend 대시보드화면을 대상으로 매뉴얼 자동 생성
+- **품질 개선**: 초기 생성 후 지속적으로 품질을 개선(상세화)하는 로직 필요
+- **RAG 저장**: 생성된 HTML 매뉴얼 파일을 추출하여 Milvus 등 벡터 DB에 저장
+- **Q&A 연동**: 저장된 매뉴얼 기반으로 사용자 질의에 응답하는 RAG 파이프라인 구축
+
+> **참고**: 매뉴얼 자동화는 현재 LUMA 프로젝트가 아닌 가이아 프로젝트에서 관리 중이나, **LUMA 프로젝트로 이관 여부 판단 필요** (회의 논의 사항)
+
+---
+
+### 모듈 3: Vibe Coding 동적 Web Page 생성 (신규)
+
+**목적**  
+모듈 1에서 조회한 데이터를 가지고, **LUMA WEB과 완전히 독립된 신규 웹 페이지를 생성**하여 제공합니다.  
+Agent가 직접 Python(데이터 가공)과 HTML/JS(시각화) 코드를 실시간으로 작성하고, 격리된 환경에서 실행하여 최종 결과물을 만듭니다.
+
+**전제조건**
+- **모듈 1의 API 매핑/검증 로직이 선행 완료되어야 함**
+- 모듈 1에서 이미 사용자 의도(Intent) 파악, Slot Filling(부족한 파라미터 질문), API 호출이 완료된 상태
+
+**개발 범위 (단계별)**
+
+#### [Step A] 코드 생성 (Vibe Coding)
+Agent가 사용자 요청에 맞는 **실행 가능한 코드 문자열**을 자동 생성합니다.
+
+| 파일 | 역할 | 기술 스택 |
+|------|------|-----------|
+| `backend_logic.py` | Backend API 호출 및 데이터 가공 | Pandas (전처리, 집계, 필터) |
+| `frontend_page.html` | 시각화 및 UI 렌더링 | Plotly (인터랙티브 차트), HTML/CSS |
+
+> **중요**: 이 단계에서는 **"아직 실행되지 않은 코드 설계도"**가 생성되는 것입니다.  
+> 데이터는 들어있지 않으며, "어떤 API를 부르고, 어떻게 가공하고, 어떻게 그릴지"에 대한 로직(템플릿)만 존재합니다.
+
+#### [Step B] 샌드박스 실행 (격리 환경)
+생성된 코드를 외부와 격리된 **일회성 컨테이너(Ephemeral Container)**에서 실행합니다.
+
+- **위치**: `agent.skhynix.com` 내부 샌드박스
+- **보안**: 호스트(OS) 직접 접근 차단, 사전 허용된 내부 API만 호출 가능
+- **실행 흐름**:
+  1. API 호출 (LUMA Backend에 KT1H 데이터 요청)
+  2. Raw Data(JSON) 반환
+  3. Pandas 기반 **데이터 가공** (피벗, 집계, 필터링, 통계)
+  4. Plotly 기반 **차트 렌더링** (Trend 그래프, Wafer Map 등)
+  5. 최종 결과를 **단일 HTML 페이지로 조립**
+
+#### [Step C] 결과 전달 (URL 공유)
+완성된 웹 페이지를 사용자에게 URL 형태로 제공합니다.
+
+- **형태**: `http://agent.skhynix.com/{session}/report` 와 같은 동적 URL
+- **수명**: 사용자 세션 종료 또는 TTL(Time To Live) 경과 시, **컨테이너와 생성된 파일 자동 폐기**
+- **특징**: LUMA WEB의 기존 화면과 디자인/레이아웃이 완전히 독립적임
+
+---
+
+## 3. 1번 vs 3번 명확한 비교
+
+구분이 모호하면 개발 범위가 커지므로, 아래 기준으로 명확히 구분합니다.
+
+| 구분 | 모듈 1 (기존) | 모듈 3 (신규/Vibe Coding) |
+|------|---------------|---------------------------|
+| **최종 산출물** | 기존 LUMA WEB 화면 URL | **AI가 직접 만든 새로운 웹 페이지** |
+| **화면 소유** | LUMA WEB 시스템 (기존 개발팀 산출물) | Agent 시스템 (AI가 실시간 생성) |
+| **데이터 가공 위치** | Backend API 내부 (기존 로직) | **샌드박스 내부에서 Pandas로 동적 가공** |
+| **시각화 도구** | LUMA WEB 기존 차트 라이브러리 | **Plotly (Agent가 코드로 생성)** |
+| **코드 작성 주체** | 기존 개발자가 미리 개발한 화면 | **Agent가 실시간으로 코드 생성 및 실행** |
+| **독립성** | LUMA WEB 의존 | **LUMA WEB과 완전 별개 서비스** |
+
+**예시 비교**
+
+```
+[사용자 요청] "RMA Lot으로 KT1H 공정 Trend/Wafer Map 분석해줘"
+
+★ 모듈 1 결과:
+→ "KT1H 공정 RMA 분석 페이지입니다: https://luma.skhynix.com/.../rma-kt1h"
+
+★ 모듈 3 결과:
+→ "분석 결과 페이지를 생성했습니다: https://agent.skhynix.com/abc123/report"
+→ 해당 페이지는 Agent가 직접 Pandas로 데이터를 가공하고 Plotly로 Wafer Map을 그린 
+   독립적인 단일 HTML 페이지임
+```
+
+---
+
+## 4. 3번 모듈 상세 시나리오 (시퀀스 기준)
+
+아래는 개발자가 구현해야 할 **정확한 흐름**입니다.
+
+```
+[Phase 1] 사용자 요청 (Intent)
+   └─ 입력: "RMA Lot 으로 KT1H 공정 Trend/Wafer Map 분석"
+   └─ 특징: 구체적 공정(KT1H), 데이터(RMA Lot), 시각화 요구(Trend, Map) 포함
+
+[Phase 2] 분석 및 보강 (Interaction) ← 모듈 1과 공유
+   ├─ Entity 추출: {대상: "RMA", 공정: "KT1H", 결과물: ["Trend", "Map"]}
+   └─ Slot Filling: 기간/파라미터 누락 시 "어느 기간으로 분석할까요?" 질문 후 보강
+
+[Phase 3] API 매핑/검증 ← 모듈 1의 핵심 로직 재사용
+   ├─ LUMA OpenAPI.json / .md 기반 엔드포인트 자동 매핑
+   └─ 스키마 검증으로 Hallucination 방지 (존재하지 않는 API 호출 차단)
+
+[Phase 4] Vibe Coding (코드 생성 단계) ← 모듈 3 핵심
+   ├─ backend_logic.py 생성
+   │   └─ API 호출 함수 + Pandas 데이터 가공 로직 (필터, 집계, 통계)
+   └─ frontend_page.html 생성
+       └─ Plotly 기반 인터랙티브 차트 (Trend 라인, Wafer 히트맵) 렌더링 코드
+
+[Phase 5] 샌드박스 실행 (코드 실행 단계) ← 모듈 3 핵심
+   ├─ 실행 위치: agent.skhynix.com 내부 격리 컨테이너 (일회성)
+   ├─ 보안: 호스트 접근 차단, 허용된 내부 API만 호출
+   ├─ 실행 흐름:
+   │   1. 생성된 backend_logic.py 실행
+   │   2. LUMA Backend API 호출 → Raw Data 반환
+   │   3. Pandas로 데이터 가공/전처리
+   │   4. 가공된 데이터로 Plotly 차트 생성
+   │   5. 최종 단일 HTML 페이지 완성
+   └─ 결과물: 동적 웹 페이지 파일
+
+[Phase 6] 결과 전달 (Delivery)
+   ├─ 형태: URL 공유 (예: http://agent.skhynix.com/{session}/report)
+   └─ 수명 관리: 세션 종료 또는 TTL 경과 시 컨테이너/파일 자동 폐기
+```
+
+---
+
+## 5. 개발 체크포인트 (Action Items)
+
+모듈 3(신규) 구현을 위해 아래 기술 요소들이 명확히 정의되어야 합니다.
+
+| 번호 | 체크포인트 | 상세 내용 | 우선순위 |
+|------|-----------|-----------|----------|
+| 1 | **OpenAPI 스펙 파싱** | `.json` 및 `.md` 파일을 Agent가 실시간으로 읽어 API 목록/파라미터/스키마를 파악하는 로직 | 상 (1번과 공유) |
+| 2 | **생성 코드 템플릿** | Python(Pandas) + HTML(Plotly) 코드를 생성하는 LLM 프롬프트 및 템플릿 설계 | 상 |
+| 3 | **샌드박스 인프라** | `agent.skhynix.com` 내 격리 컨테이너 실행 환경 구축 (Docker/K8s 등) | 상 |
+| 4 | **보안 정책** | 샌드박스 내에서 호스트 접근 차단, API 화이트리스트(허용 목록) 적용 | 중 |
+| 5 | **데이터 가공 표준** | Pandas로 처리할 수 있는 공통 전처리 로직(필터, 피벗, 집계) 정의 | 중 |
+| 6 | **URL 발급/수명 관리** | 세션별 동적 URL 생성 및 TTL/종료 시 자동 폐기 메커니즘 | 중 |
+| 7 | **Hallucination 방지** | 생성된 코드의 API 엔드포인트가 실제 스펙과 일치하는지 검증 로직 | 상 (1번과 공유) |
+
+---
+
+## 6. 개발자 이해를 위한 핵심 요약
+
+- **1번은 "데이터를 찾아서 기존 웹페이지를 알려주는 것"**이고, **3번은 "데이터를 찾아서 AI가 직접 새로운 분석 페이지를 만들어주는 것"**입니다.
+- 3번에서 Agent가 생성하는 `HTML(.html)`은 **완성된 결과물이 아닌 "코드 설계도"**입니다. 실제 데이터는 없습니다.
+- **"코드 설계도"를 샌드박스라는 공장에 넣어 돌리면**, 그때서야 Backend API에서 데이터를 받아오고, Pandas로 가공하고, Plotly로 그려서 **진짜 웹 페이지가 완성**됩니다.
+- 따라서 개발팀은 **"코드를 생성하는 AI 로직"**과 **"코드를 안전하게 실행하는 샌드박스 환경"** 이 두 축을 모두 만들어야 합니다.
+
+---
+
+이 정의를 기준으로 WBS 및 백로그를 작성하시면 1번과 3번의 범위 중복/누락 없이 깔끔하게 개발 진행하실 수 있을 것입니다.
+
+
+
+
+
+
+=====
+
+
+아래는 실제 개발자가 보게 될 **코드 흐름 전체 예시**입니다.
+
+"Agent가 짠 설계도"와 "샌드박스에서 데이터를 채워 완성된 산출물"을 분리해서 보여드립니다.
+
+---
+
+## 1. API 매핑 명세 (OpenAPI.json)
+
+Agent가 참조할 Backend 스펙입니다. 이걸 보고 Agent는 `KT1H` 공정에서 RMA Lot 데이터를 조회하는 코드를 생성합니다.
+
+```json
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/rma/kt1h/thickness": {
+      "get": {
+        "summary": "KT1H RMA Lot 두께 측정 데이터",
+        "parameters": [
+          {
+            "name": "lot_no",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Lot 번호 (예: RMA20250801)"
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Raw 데이터 반환",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "wafer_id": { "type": "string" },
+                          "measure_point": { "type": "integer" },
+                          "thickness": { "type": "number" },
+                          "measured_at": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
+## 2. Agent가 생성한 원본 코드 (Vibe Coding 산출물)
+
+Agent가 위 명세를 보고 실시간으로 생성한 **아직 실행되지 않은 "설계도"**입니다.  
+데이터는 없고, 구멍(`{{ }}`)만 뚫려 있습니다.
+
+### `backend_logic.py` (템플릿)
+
+```python
+import requests
+import pandas as pd
+import json
+from datetime import datetime, timedelta
+
+# ========== Agent가 채워 넣은 파라미터 ==========
+LOT_NO = "{{LOT_NO}}"
+START_DATE = "{{START_DATE}}"
+END_DATE = "{{END_DATE}}"
+API_BASE = "{{API_BASE}}"  # 허용된 내부 API 주소
+# =============================================
+
+def fetch_data():
+    url = f"{API_BASE}/api/v1/rma/kt1h/thickness"
+    params = {
+        "lot_no": LOT_NO,
+        "start_date": START_DATE,
+        "end_date": END_DATE
+    }
+    resp = requests.get(url, params=params, timeout=15)
+    resp.raise_for_status()
+    return resp.json()["data"]
+
+def process(raw_list):
+    df = pd.DataFrame(raw_list)
+    
+    # Pandas 전처리: 웨이퍼별 통계, Trend용 시계열 정렬
+    df["measured_at"] = pd.to_datetime(df["measured_at"])
+    df = df.sort_values(["wafer_id", "measured_at"])
+    
+    summary = df.groupby("wafer_id")["thickness"].agg(
+        mean="mean", std="std", min="min", max="max"
+    ).reset_index()
+    
+    return {
+        "lot_no": LOT_NO,
+        "raw": df.to_dict("records"),
+        "summary": summary.to_dict("records"),
+        "trend": df[["measured_at", "thickness", "wafer_id"]].to_dict("records")
+    }
+
+if __name__ == "__main__":
+    raw = fetch_data()
+    result = process(raw)
+    with open("data.json", "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
+```
+
+### `template.html` (템플릿)
+
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>{{LOT_NO}} - KT1H 분석</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: 'Malgun Gothic', sans-serif; margin: 20px; }
+    h2 { color: #333; }
+  </style>
+</head>
+<body>
+  <h1>Lot {{LOT_NO}} KT1H 두께 분석 리포트</h1>
+  <p>분석 기간: {{START_DATE}} ~ {{END_DATE}}</p>
+  
+  <h2>1. Trend Chart (시계열)</h2>
+  <div id="trend-chart" style="width:900px;height:400px;"></div>
+  
+  <h2>2. Wafer Map (웨이퍼별 Thickness)</h2>
+  <div id="wafer-map" style="width:900px;height:400px;"></div>
+
+  <script>
+    // ===== 샌드박스에서 주입될 데이터 =====
+    const ANALYSIS_DATA = {{JSON_DATA}};
+    // ===================================
+    
+    // 1. Trend Chart
+    const traces = [];
+    const wafers = [...new Set(ANALYSIS_DATA.trend.map(d => d.wafer_id))];
+    wafers.forEach(wid => {
+      const subset = ANALYSIS_DATA.trend.filter(d => d.wafer_id === wid);
+      traces.push({
+        x: subset.map(d => d.measured_at),
+        y: subset.map(d => d.thickness),
+        mode: 'lines+markers',
+        name: wid
+      });
+    });
+    Plotly.newPlot('trend-chart', traces, { title: 'Thickness Trend' });
+
+    // 2. Wafer Map (Scatter: X=measure_point, Y=thickness)
+    const waferTraces = ANALYSIS_DATA.summary.map(w => ({
+      x: [w.mean],
+      y: [w.std],
+      mode: 'markers',
+      marker: { size: 15 },
+      name: w.wafer_id,
+      text: `Mean: ${w.mean.toFixed(2)}<br>Std: ${w.std.toFixed(2)}`
+    }));
+    Plotly.newPlot('wafer-map', waferTraces, {
+      title: 'Wafer Summary (Mean × Std)',
+      xaxis: { title: 'Average Thickness (Å)' },
+      yaxis: { title: 'Std Dev (Å)' }
+    });
+  </script>
+</body>
+</html>
+```
+
+---
+
+## 3. 샌드박스(Sandbox) 실행 흐름
+
+샌드박스 내부에서 실제로 일어나는 일입니다.  
+"Agent가 짠 템플릿"에 **실제 파라미터**를 주입하고, **실제 API를 호출**한 뒤, **단일 HTML 파일**로 조립합니다.
+
+### `sandbox_runner.py` (격리 컨테이너 내부 실행기)
+
+```python
+import os
+import re
+import json
+import subprocess
+
+# 1. 환경변수로 실제 파라미터 주입 (Agent → Sandbox 전달)
+os.environ["LOT_NO"] = "RMA20250801"
+os.environ["START_DATE"] = "2025-07-15"
+os.environ["END_DATE"] = "2025-08-12"
+os.environ["API_BASE"] = "http://luma-back.internal"
+
+# 2. 템플릿 파일 로드
+with open("backend_logic.py", "r", encoding="utf-8") as f:
+    py_template = f.read()
+
+with open("template.html", "r", encoding="utf-8") as f:
+    html_template = f.read()
+
+# 3. 템플릿 변수 치환 -> 실행 가능한 Python 생성
+py_code = py_template.replace("{{LOT_NO}}", os.environ["LOT_NO"]) \
+                     .replace("{{START_DATE}}", os.environ["START_DATE"]) \
+                     .replace("{{END_DATE}}", os.environ["END_DATE"]) \
+                     .replace("{{API_BASE}}", os.environ["API_BASE"])
+
+with open("run.py", "w", encoding="utf-8") as f:
+    f.write(py_code)
+
+# 4. Backend API 호출 및 데이터 가공 실행
+subprocess.run(["python", "run.py"], check=True)
+
+# 5. 생성된 data.json 로드
+with open("data.json", "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+# 6. 최종 HTML 조립: 템플릿의 {{JSON_DATA}}에 실제 데이터 주입
+js_payload = json.dumps(data, ensure_ascii=False)
+final_html = html_template.replace("{{LOT_NO}}", os.environ["LOT_NO"]) \
+                          .replace("{{START_DATE}}", os.environ["START_DATE"]) \
+                          .replace("{{END_DATE}}", os.environ["END_DATE"]) \
+                          .replace("{{JSON_DATA}}", js_payload)
+
+with open("final_report.html", "w", encoding="utf-8") as f:
+    f.write(final_html)
+
+print("최종 페이지 생성 완료: final_report.html")
+```
+
+---
+
+## 4. 최종 완성된 코드 (Sandbox 산출물)
+
+위 실행기가 만들어낸 **실제 결과물**입니다.  
+사용자에게 전달되는 URL `http://agent.skhynix.com/{session}/report` 에 해당하는 **단일 HTML 파일**입니다.  
+`{{ }}`는 전부 사라지고, 진짜 데이터가 들어가 있습니다.
+
+### `final_report.html` (실제 사용자가 보는 결과)
+
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>RMA20250801 - KT1H 분석</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: 'Malgun Gothic', sans-serif; margin: 20px; }
+    h2 { color: #333; }
+  </style>
+</head>
+<body>
+  <h1>Lot RMA20250801 KT1H 두께 분석 리포트</h1>
+  <p>분석 기간: 2025-07-15 ~ 2025-08-12</p>
+  
+  <h2>1. Trend Chart (시계열)</h2>
+  <div id="trend-chart" style="width:900px;height:400px;"></div>
+  
+  <h2>2. Wafer Map (웨이퍼별 Thickness)</h2>
+  <div id="wafer-map" style="width:900px;height:400px;"></div>
+
+  <script>
+    // 실제 데이터가 주입된 상태
+    const ANALYSIS_DATA = {
+      "lot_no": "RMA20250801",
+      "raw": [
+        {"wafer_id":"W01","measure_point":1,"thickness":2450,"measured_at":"2025-07-15T08:00:00"},
+        {"wafer_id":"W01","measure_point":2,"thickness":2460,"measured_at":"2025-07-15T08:05:00"},
+        {"wafer_id":"W02","measure_point":1,"thickness":2445,"measured_at":"2025-07-16T08:00:00"},
+        {"wafer_id":"W03","measure_point":1,"thickness":2430,"measured_at":"2025-07-17T08:00:00"}
+      ],
+      "summary": [
+        {"wafer_id":"W01","mean":2455.0,"std":7.07,"min":2450,"max":2460},
+        {"wafer_id":"W02","mean":2445.0,"std":0.0,"min":2445,"max":2445},
+        {"wafer_id":"W03","mean":2430.0,"std":0.0,"min":2430,"max":2430}
+      ],
+      "trend": [
+        {"measured_at":"2025-07-15T08:00:00","thickness":2450,"wafer_id":"W01"},
+        {"measured_at":"2025-07-15T08:05:00","thickness":2460,"wafer_id":"W01"},
+        {"measured_at":"2025-07-16T08:00:00","thickness":2445,"wafer_id":"W02"},
+        {"measured_at":"2025-07-17T08:00:00","thickness":2430,"wafer_id":"W03"}
+      ]
+    };
+
+    // 1. Trend Chart
+    const traces = [];
+    const wafers = [...new Set(ANALYSIS_DATA.trend.map(d => d.wafer_id))];
+    wafers.forEach(wid => {
+      const subset = ANALYSIS_DATA.trend.filter(d => d.wafer_id === wid);
+      traces.push({
+        x: subset.map(d => d.measured_at),
+        y: subset.map(d => d.thickness),
+        mode: 'lines+markers',
+        name: wid
+      });
+    });
+    Plotly.newPlot('trend-chart', traces, { title: 'Thickness Trend' });
+
+    // 2. Wafer Map (요약 Scatter)
+    const waferTraces = ANALYSIS_DATA.summary.map(w => ({
+      x: [w.mean],
+      y: [w.std],
+      mode: 'markers',
+      marker: { size: 15 },
+      name: w.wafer_id,
+      text: `Mean: ${w.mean.toFixed(2)}<br>Std: ${w.std.toFixed(2)}`
+    }));
+    Plotly.newPlot('wafer-map', waferTraces, {
+      title: 'Wafer Summary (Mean × Std)',
+      xaxis: { title: 'Average Thickness (Å)' },
+      yaxis: { title: 'Std Dev (Å)' }
+    });
+  </script>
+</body>
+</html>
+```
+
+---
+
+## 5. 정리: 각 파일의 역할 재확인
+
+| 파일 | 단계 | 역할 | 데이터 상태 |
+|------|------|------|-------------|
+| `OpenAPI.json` | 명세 | Backend API 스펙 | — |
+| `backend_logic.py` (템플릿) | Vibe Coding | API 호출 + Pandas 로직 | `{{ }}` 구멍 상태 |
+| `template.html` (템플릿) | Vibe Coding | Plotly 차트 로직 | `{{ }}` 구멍 상태 |
+| `sandbox_runner.py` | Sandbox 실행 | 주입/실행/조립 | 실제 값으로 치환 |
+| `run.py` | Sandbox 내부 | 실제 API 호출 + data.json 생성 | 실제 JSON 생성 |
+| **`final_report.html`** | **산출물** | **사용자에게 보여줄 완성 페이지** | **데이터 완전 주입 완료** |
+
+> **핵심**: Agent가 짠 코드는 **"어떻게 할지 적힌 템플릿"**이고, 샌드박스는 그 템플릿을 받아 **"진짜 데이터로 채워서 실행한 뒤, 하나의 HTML로 배포"**하는 공장입니다.  
+> 사용자는 `final_report.html` 하나만 보게 됩니다. 세션 끝나면 이 파일과 컨테이너는 자동 폐기됩니다.
+
+이 예시가 개발 범위를 가늠하는 데 도움이 되실까요? 추가로 궁금하신 부분 있으시면 말씀해주세요.
+
+
 내용 보시고 관련해서 차주에 미팅을 한번 할게요 [[ (8/18(화) 09:00 1201호) ]]
