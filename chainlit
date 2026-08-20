@@ -1,1 +1,52 @@
 
+// app.py
+
+# import chainlit as cl
+
+# @cl.on_message
+# async def main(message: cl.Message):
+#     # 사용자 메시지를 받아서 응답
+#     await cl.Message(content=f"당신이 말한 것: {message.content}").send()
+
+
+import chainlit as cl
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://common.llm.skhynix.com/v1/",
+    api_key="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ7XCJhY2NvdW50VHlwZVwiOlwiU0VSVklDRVwiLFwiYWNjb3VudElkXCI6XCJYMDE4MTc0NFwiLFwiYWNjb3VudE5hbWVcIjpcIjEyNjUxXCIsXCJhY2NvdW50RGV0YWlsXCI6e319In0._dSXzHOjjkNJ40K4V16aibcZxnjzq044v-lVssvoN2a9PN_zzbRY8AOQ16yKO1a-MiGEuqM-C8JqnoqUtNBY_A"
+)
+
+@cl.on_chat_start
+async def start():
+    cl.user_session.set("chat_history", [])
+    await cl.Message(content="안녕하세요! Qwen 모델과 대화할 수 있습니다.").send()
+
+# @cl.on_message
+# async def main(message: cl.Message):
+#     response = client.chat.completions.create(
+#         model="Qwen3.6-35B-A3B",
+#         messages=[
+#             {"role": "user", "content": message.content}
+#         ]
+#     )
+#     await cl.Message(content=response.choices[0].message.content).send()
+
+@cl.on_message
+async def main(message: cl.Message):
+    chat_history = cl.user_session.get("chat_history")
+    chat_history.append({"role": "user", "content": message.content})
+    response = client.chat.completions.create(
+        model="Qwen3.6-35B-A3B",
+        messages=chat_history,
+        stream=True
+    )
+    msg = cl.Message(content="")
+    await msg.send()
+    full_response = ""
+    for chunk in response:
+        if chunk.choices[0].delta.content is not None:
+            token = chunk.choices[0].delta.content
+            full_response += token
+            await msg.stream_token(token)
+    chat_history.append({"role": "assistant", "content": full_response})
