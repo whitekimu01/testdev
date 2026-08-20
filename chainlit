@@ -50,3 +50,192 @@ async def main(message: cl.Message):
             full_response += token
             await msg.stream_token(token)
     chat_history.append({"role": "assistant", "content": full_response})
+
+
+
+
+
+
+#request to api
+// app.py
+
+# import chainlit as cl
+
+# @cl.on_message
+# async def main(message: cl.Message):
+#     # 사용자 메시지를 받아서 응답
+#     await cl.Message(content=f"당신이 말한 것: {message.content}").send()
+
+
+import chainlit as cl
+from openai import OpenAI
+
+import httpx
+import json
+
+client = OpenAI(
+    base_url="http://common.llm.skhynix.com/v1/",
+    api_key="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ7XCJhY2NvdW50VHlwZVwiOlwiU0VSVklDRVwiLFwiYWNjb3VudElkXCI6XCJYMDE4MTc0NFwiLFwiYWNjb3VudE5hbWVcIjpcIjEyNjUxXCIsXCJhY2NvdW50RGV0YWlsXCI6e319In0._dSXzHOjjkNJ40K4V16aibcZxnjzq044v-lVssvoN2a9PN_zzbRY8AOQ16yKO1a-MiGEuqM-C8JqnoqUtNBY_A"
+)
+
+@cl.on_chat_start
+async def start():
+    cl.user_session.set("chat_history", [])
+    await cl.Message(content="안녕하세요! Qwen 모델과 대화할 수 있습니다.").send()
+
+# @cl.on_message
+# async def main(message: cl.Message):
+#     response = client.chat.completions.create(
+#         model="Qwen3.6-35B-A3B",
+#         messages=[
+#             {"role": "user", "content": message.content}
+#         ]
+#     )
+#     await cl.Message(content=response.choices[0].message.content).send()
+
+# @cl.on_message
+# async def main(message: cl.Message):
+#     chat_history = cl.user_session.get("chat_history")
+#     chat_history.append({"role": "user", "content": message.content})
+#     response = client.chat.completions.create(
+#         model="Qwen3.6-35B-A3B",
+#         messages=chat_history,
+#         stream=True
+#     )
+#     msg = cl.Message(content="")
+#     await msg.send()
+#     full_response = ""
+#     for chunk in response:
+#         if chunk.choices[0].delta.content is not None:
+#             token = chunk.choices[0].delta.content
+#             full_response += token
+#             await msg.stream_token(token)
+#     chat_history.append({"role": "assistant", "content": full_response})
+
+@cl.on_message
+async def main(message: cl.Message):
+    chat_history = cl.user_session.get("chat_history")
+    chat_history.append({"role": "user", "content": message.content})
+
+    msg = cl.Message(content="")
+    await msg.send()
+
+    full_response = ""
+    async with httpx.AsyncClient(timeout=120) as client:
+        async with client.stream(
+            "POST",
+            f"http://localhost:8001/v1/chat/completions",
+            json={"model": "Qwen3.6-35B-A3B", "messages": chat_history, "stream": True},
+        ) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                if not line.startswith("data:"):
+                    continue
+                data = line[5:].strip()
+                if data == "[DONE]":
+                    break
+                chunk = json.loads(data)
+                delta = chunk["choices"][0]["delta"].get("content")
+                if delta:
+                    full_response += delta
+                    await msg.stream_token(delta)
+
+    chat_history.append({"role": "assistant", "content": full_response})
+
+
+// server.py
+
+"""Mock LLM backend (테스트용).
+
+실제 LLM에 연결하지 않고 고정된 텍스트를 돌려주는 목(mock) 서버.
+
+- POST /chat                    : 비스트리밍 단일 JSON 응답
+- POST /v1/chat/completions     : OpenAI 호환 응답 (stream=True 면 SSE 토큰 스트리밍)
+
+실행 (8000은 Chainlit이 사용 중이므로 8001 포트 사용):
+    venv\Scripts\python mock_llm.py
+"""
+
+import asyncio
+import json
+
+import uvicorn
+from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
+
+app = FastAPI(title="Mock LLM Backend")
+
+FAKE_ANSWER = (
+    "이것은 테스트용 고정 응답입니다. LLM에 연결하지 않고 "
+    "목 서버가 정해진 텍스트를 돌려주고 있어요."
+)
+
+def _last_user_message(messages) -> str:
+    for m in messages or []:
+        if m.get("role") == "user":
+            return m.get("content", "")
+    return ""
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+@app.post("/chat")
+async def chat(request: Request):
+    body = await request.json()
+    user_msg = _last_user_message(body.get("messages"))
+    content = f"[{user_msg}] -> {FAKE_ANSWER}" if user_msg else FAKE_ANSWER
+    return {
+        "choices": [
+            {"message": {"role": "assistant", "content": content}, "finish_reason": "stop"}
+        ]
+    }
+
+async def _openai_sse(body: dict):
+    model = body.get("model", "Qwen3.6-35B-A3B")
+    user_msg = _last_user_message(body.get("messages"))
+    answer = f"[{user_msg}] -> {FAKE_ANSWER}" if user_msg else FAKE_ANSWER
+
+    # 글자 단위로 쪼개서 토큰처럼 흘려보낸다
+    for token in answer:
+        payload = {
+            "id": "chatcmpl-mock",
+            "object": "chat.completion.chunk",
+            "model": model,
+            "choices": [{"index": 0, "delta": {"content": token}, "finish_reason": None}],
+        }
+        yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.01)
+
+    finish = {
+        "id": "chatcmpl-mock",
+        "object": "chat.completion.chunk",
+        "model": model,
+        "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
+    }
+    yield f"data: {json.dumps(finish, ensure_ascii=False)}\n\n"
+    yield "data: [DONE]\n\n"
+
+@app.post("/v1/chat/completions")
+async def chat_completions(request: Request):
+    body = await request.json()
+    model = body.get("model", "Qwen3.6-35B-A3B")
+
+    if body.get("stream"):
+        return StreamingResponse(_openai_sse(body), media_type="text/event-stream")
+
+    user_msg = _last_user_message(body.get("messages"))
+    content = f"[{user_msg}] -> {FAKE_ANSWER}" if user_msg else FAKE_ANSWER
+    return {
+        "id": "chatcmpl-mock",
+        "object": "chat.completion",
+        "model": model,
+        "choices": [
+            {"index": 0, "message": {"role": "assistant", "content": content}, "finish_reason": "stop"}
+        ],
+    }
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=8001)
+
