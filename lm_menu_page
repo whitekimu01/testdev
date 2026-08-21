@@ -1,65 +1,30 @@
-네, 실제 LNB에서 **보이는 텍스트만** 추출해 페이지 연결 + 한 줄 설명 + "왜 쓰는지" 예측 순서로 정리했습니다.
-
-```
-HOME
-```
-
-- **HOME** → 홈 대시보드: 로그인 후 첫 화면, 사용자별 등록한 바로가기 메뉴/최근 기능을 보여주는 시작 페이지
-  - 예측) 일일 첫 진입점이라 자주 쓰는 보고서·차트를 한 곳에 모아 빠르게 접근하려고 씀
-
-```
-DATA — 데이터 조회 메뉴
-└─ ABT — ABT 관련 데이터
-```
-
-- **File Processing Results** → `/data/abt/fileProcessingResults` : ABT(분석용 원천테이블) 생성에 쓸 파일이 시스템에 로드된 처리 결과(성공/실패 이력)를 보는 페이지
-  - 예측) 파일 로딩이 정상 반영됐는지 실패 건을 모니터링해, 데이터가 빠졌을 때 조기에 잡으려고 씀
-- **Pivot Table** → `/data/abt/pivotTable` : ABT 데이터를 공정·제품·Lot 등 조건별 교차 집계표(피벗)로 펼쳐 보는 페이지
-  - 예측) 수치를 조건을 바꿔가며 다각도로 비교하고 요약하려고 씀
-
-```
-DATA 아래 직접 메뉴
-```
-
-- **RAW Table & Download** → `/data/rawDownload` : 가공 전 원시(Raw) 데이터를 그대로 테이블로 조회하고 엑셀 다운로드하는 페이지
-  - 예측) ABT에 없는 원천 데이터를 직접 까보거나, 외부 전달/분석용으로 원본 파일을 받으려고 씀
-- **Lot History Table** → `/data/lotHistoryTable` : 특정 Lot이 어떤 공정·검사를 거쳤는지 시간순 이력을 표로 보는 페이지
-  - 예측) 불량/이상 발생 시 해당 Lot의 공정 경로를 추적해 어느 단계 문제인지 찾으려고 씀
+네, 기존 코드 기준으로 CHART › ABT 밑에 있는 화면들을 추가했습니다. (배포 LNB에서 ABT가 접혀 있어 정확한 신규 경로는 안 보여서, 저장소 코드의 라우트 경로로 채웠습니다 — 경로 확인 원하시면 펼친 상태 보여주세요.)
 
 ```
 CHART — 차트 분석 메뉴
-└─ ABT — ABT 관련 차트 (접혀 있어 하위 항목은 눈에 안 보임)
+└─ ABT — ABT 관련 차트
 ```
 
-- **ABT** → (하위 메뉴 접힘) : ABT 기반 차트들의 그룹 (코드 기준으로 Fuse Usage·Fail Address·Trend 등이 있는 그룹)
-  - 예측) ABT 데이터를 차트로 시각화하는 화면들을 한 묶음으로 관리하려고 씀
-- **Response Trend Chart** → `/chart/responseTrend` : 고객사(TSMC 등)로부터 받은 응답 데이터의 시계열 트렌드 차트
-  - 예측) 외부 고객 응답 지표가 시간에 따라 어떻게 변하는지 추이를 봐서 협력사 이슈를 미리 감지하려고 씀
-- **Probe Trend Chart** → `/chart/probeTrend` : 전기적 테스트(Probe)의 수율/측정값 트렌드 차트
-  - 예측) 웨이퍼 단위 테스트 성적의 추이를 보고 수율 악화 시점·공정 안정성을 판단하려고 씀
-
-```
-MAP — 맵 분석 메뉴
-```
-
-- **Wafer Map** → `/map/wafer` : 개별 웨이퍼 좌표별 측정값/불량을 위치 기반 지도로 보는 페이지
-  - 예측) 어느 다이 위치에 문제가 몰려있는지 공간적 패턴으로 원인 장비·공정을 추정하려고 씀
-- **Wafer Cum Map** → `/map/waferCum` : 여러 웨이퍼를 겹쳐 누적(복합)한 결함/수치 패턴 지도
-  - 예측) 단건으로 안 보이는 반복적·시스템적 불량 패턴을 누적으로 드러내려고 씀
-- **Warpage Map** → `/map/warpage` : 웨이퍼 휨(Warpage) 수치를 위치별로 보여주는 전용 맵
-  - 예측) 휨은 후속 공정 접합 불량과 직결되므로 휨 분포를 봐서 공정 순서·조건 문제를 찾으려고 씀
-
-```
-AI Insight — AI 인사이트 분석 메뉴
-```
-
-- **Target Die Analysis** → `/ai/targetDieAnalysis` : 특정 타깃 다이(불량/관심 지점)를 중심으로 특성을 AI로 분석하는 페이지
-  - 예측) 문제 다이의 주변*어떤 조건*이 불량과 연관되는지 데이터로 찾아 원인 후보를 좁히려고 씀
-- **Correlation Chart v2** → `/ai/correlation` : 여러 변수 간 상관관계를 모델링/데이터 기반으로 분석하는 차트 (v2)
-  - 예측) 어떤 계측 항목이 수율·불량과 상관이 높은지 변수 간 관계를 정량화해 관리 포인트를 정하려고 씀
-- **Warpage Interpolation** → `/ai/warpageMapInterpolation` : 휨 측정값이 없는 지점을 보간해 연속적인 휨 맵을 만드는 페이지
-  - 예측) 전 다이 측정이 안 될 때 보간으로 전체 휨 경향을 추정해 미측정 위치의 위험 여부까지 파악하려고 씀
+- **ABT Fuse Usage** → `/Chart/ViewFuseUsage` : 반도체 퓨즈(Redundancy 회로) 사용량/남는 퓨즈를 시계열·집계 차트로 보는 페이지
+  - 예측) 퓨즈 사용율은 수율·리페어 여력과 직결되므로, 퓨즈 소진 추이를 봐서 어느 단계에서 리페어가 부족해질지 판단하려고 씀
+- **Fail Address Distribution** → `/Chart/ViewFailAddress` : 불량 어드레스(결함 주소)를 카테고리별로 집계해 어떤 불량 유형이 분포하는지 보는 차트 페이지
+  - 예측) 어느 불량코드가 많이 나오는지 비중을 파악해 개선 우선순위를 정하려고 씀
+- **Fail Address Detail Map** → `/Chart/ViewFailAddress/DetailMap` : 결함 어드레스를 웨이퍼 좌표 위 히트맵으로 상세 표시하는 페이지
+  - 예측) 결함이 웨이퍼 어느 위치에 집중되는지 공간 패턴으로 봐서 장비·공정 원인을 추정하려고 씀
+- **Trend Chart** → `/Chart/ViewTrendChart` : ABT의 여러 카테고리 항목을 기간별 시계열 추세로 한눈에 비교하는 차트 페이지
+  - 예측) 각 항목 수치의 흐름을 봐서 이상 급증·악화 시점을 찾아 초기 대응하려고 씀
 
 ---
 
-정리하면: **DATA = 원본 데이터 확인**, **CHART = 숫자 트렌드**, **MAP = 위치 기반 맵**, **AI Insight = AI로 원인/연관성 분석**이라는 성격입니다. 참고로 CHART › ABT는 접혀 있어 하위가 안 보이니, 펼쳤을 때의 항목(Fuse Usage 등)도 필요하면 말씀해 주세요.
+**CHART › ABT 풀 버전 정리**
+
+```
+CHART
+└─ ABT
+    ├─ ABT Fuse Usage          → /Chart/ViewFuseUsage      (퓨즈 사용량 차트)
+    ├─ Fail Address Distribution → /Chart/ViewFailAddress    (불량 어드레스 분포)
+    ├─ Fail Address Detail Map  → /Chart/ViewFailAddress/DetailMap (결함 위치 히트맵)
+    └─ Trend Chart              → /Chart/ViewTrendChart      (카테고리별 추세)
+```
+
+> 참고: 이 4개는 배포 LNB의 `CHART › ABT` 하위 그룹에 해당하는 ABT 차트들입니다. 만약 배포 화면에서 ABT 서브메뉴에 **다른 이름/추가 항목**이 보인다면 (예: 파일명·라벨이 조금 다르다든지), 그 HTML을 붙여주시면 실제 배포 기준 라벨과 경로로 맞춰 다시 정리해 드리겠습니다.
