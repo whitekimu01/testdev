@@ -1,0 +1,286 @@
+# LUMA 매뉴얼 자동생성 테스트 작업 프로세스
+
+> 본 문서는 "매뉴얼(튜토리얼 HTML)이 어떻게 자동 생성되는가"의 **전체 프로세스**를
+> 파일 실행 순서 기준으로 설명한다. HTML 내부 구현/실데이터 반영률 상세는
+> [TUTORIAL_HTML_GENERATION_GUIDE.md](./TUTORIAL_HTML_GENERATION_GUIDE.md) 참고.
+
+---
+
+## 1. 개요
+
+LUMA 시스템의 **화면별 사용 가이드 HTML**(`*-guide.html`)을 하드코딩 없이 동적으로
+생성하는 파이프라인이다. 화면 목록·제목·컬럼·API 엔드포인트·CSS를 실제 데이터
+(백엔드 메뉴 API + 프론트엔드 TSX/SCSS 소스 + 실데이터 API)에서 끌어와 구성한다.
+
+- 산출물: `luma-tutorials/*-guide.html`
+- 소비자: RAG 에이전트의 `get_screen_tutorial` / `list_tutorial_screens` 도구
+- 검증: `verify_tutorials.py`가 생성된 HTML 무결성 교차검증
+
+### 핵심 원칙
+- 화면 목록/제목/컬럼/API/CSS를 **하드코딩하지 않는다** (실데이터 교차검증)
+- 동적 구성 실패 시에만 `screens.py`의 정적 `SCREENS`로 폴백
+
+---
+
+## 2. 실행 진입점(트리거)과 현재 상태
+
+| 진입점 | 파일·함수 | 현재 상태 |
+|---|---|---|
+| 서버 기동 자동생성 | `app.py::_generate_tutorials_on_startup` | ⚠️ **비활성** — `__main__`에서 주석 처리 (`app.py` L101-102), `TUTORIAL_AUTO_GENERATE: false` |
+| 배치 스케줄 | `run_batch.py` | 등록 안 됨 — `--now` 수동 실행 또는 Windows 스케줄러 등록 필요 |
+| 에이전트 도구 | `src/tools/luma_tools.py::generate_tutorial_html` | 활성 — 채팅 "튜토리얼 생성" 시 호출 |
+
+> **요약**: 현재 기본 구성으로는 **서버 시작 시 자동생성이 동작하지 않는다.**
+> `run_batch.py --now` 또는 에이전트 도구로만 생성된다.
+
+---
+
+## 3. 동작 순서별 파일 목록
+
+```
+[진입점] run_batch.py / app.py / src/tools/luma_tools.py
+  ↓ (1)
+src/workflows/html_gen/__init__.py            ← 패키지 수출(출입구)
+  ↓ (2)
+src/workflows/html_gen/generator.py
+   └─ generate_all_tutorials()                ← 메인 루프 (화면 순회·파일 저장)
+  ↓ (3)
+src/workflows/html_gen/screens.py
+   └─ build_screens()                         ← 화면 목록 결정 (동적 우선)
+  ↓ (4, 실패 시 3의 정적 SCREENS로 폴백)
+src/workflows/html_gen/screen_builder.py
+   └─ build_screens_dynamic()                 ← 3원 교차검증 조합
+    ├─ (5) frontend_analyzer.py  analyze_frontend()        ← 프론트 소스 분석
+    ├─ (6) menu_client.py        fetch_menu_home()         ← 백엔드 메뉴 조회
+    └─ (7) web_validator.py      validate_routes_web_mapping() ← 웹 존재 검증
+  ↓ (8) 각 화면 메타데이터 완성 → generator로 복귀
+generator.py
+   └─ generate_html(screen)                   ← 단일 화면 HTML 생성
+       ├─ (9)  css_extractor.py  extract_ui_css()  ← SCSS 평탄화 추출
+       ├─ (10) _fetch_real_data()             ← 실백엔드 조회 (REAL)
+       ├─ (11) _generate_mock_data()          ← 실패 시 목업 폴백 (MOCK)
+       └─ (12) _build_sidebar/content/guide/js ← HTML 본체 조립
+  ↓ (13) luma-tutorials/*-guide.html 저장
+verify_tutorials.py
+   └─ verify_tutorials() / print_report()     ← 산출물 무결성 검증
+  ↓ (14) 사용 시점
+src/tools/luma_tools.py
+   └─ get_screen_tutorial() / list_tutorial_screens() ← RAG 에이전트가 소비
+```
+
+---
+
+## 4. 파일별 기능 정의
+
+| # | 파일 | 기능 |
+|---|------|------|
+| 진입 | `app.py` | 서버 기동 시 튜토리얼 자동생성 (현재 주석 비활성) |
+| 진입 | `run_batch.py` | 배치 스케줄러. `--now` 즉시/매일 00:00 자동, Windows 스케줄러 등록·해제, 생성 후 검증 |
+| 진입 | `src/tools/luma_tools.py` | 에이전트 도구 3종 정의 |
+| 1 | `html_gen/__init__.py` | `generate_all_tutorials`/`build_screens`/`verify_tutorials` 등을 외부 노출 |
+| 2 | `generator.py` | 공장 본체. 전체 루프 → 단일 HTML 조립 → 실데이터/목업/JS/CSS 결합 |
+| 3 | `screens.py` | 화면 메타데이터 소스. 동적 우선, 실패 시 정적 `SCREENS`(10개) 폴백 |
+| 4 | `screen_builder.py` | 동적 메타데이터 조합기. 3개 소스 교차검증 → generator 형식 변환·중복 제거 |
+| 5 | `frontend_analyzer.py` | `App.tsx` 라우트 맵 → TSX에서 제목/API/컬럼/사이드바 추출 (정규식) |
+| 6 | `menu_client.py` | `/api/v2/menu/home` POST → 메뉴 목록(화면명·url) 획득 |
+| 7 | `web_validator.py` | 라우트를 `LUMA_WEB_BASE_URL` 뒤에 붙여 HTTP 200 확인 (SPA라 상태코드만) |
+| 8 | `generator.py::generate_html` | 사이드바/결과/우측 가이드패널 + 임베드 JS(`GUIDE_DATA`/`API_INFO`/`MOCK_DATA`) 조립 |
+| 9 | `css_extractor.py` | `fileProcessingResult.scss`/`search.scss` 평탄화 → 관련 셀렉터 추출 |
+| 10 | `generator.py::_fetch_real_data` | 실백엔드 POST → 실컬럼/실데이터 확보 (**REAL**, 실데이터 반영률 결정) |
+| 11 | `generator.py::_generate_mock_data` | 실조회 실패 시 차트·테이블 동적 목업 (**MOCK**) |
+| 12 | `generator.py::_build_*` | 사이드바/결과/가이드 설명/JS 각 파트 생성 |
+| 13-14 | `verify_tutorials.py` | HTML 무결성 검증 (구조·GUIDE_DATA·guide-id 일치·필수 JS 함수) |
+| 15 | `luma_tools.py::get_screen_tutorial` | 생성 HTML을 텍스트로 변환 반환 → RAG가 사용법 답변 근거로 사용 |
+
+---
+
+## 5. 시작 → 끝 과정 (상세)
+
+### ① 트리거
+- `run_batch.py --now` 또는 서버 기동 시 `app.py`가 `_generate_tutorials_on_startup()` 호출
+  (`TUTORIAL_AUTO_GENERATE=true`일 때만, 현재는 false)
+
+### ② 화면 목록 결정 (소스 수집·교차검증)
+- `build_screens()` → `build_screens_dynamic()`
+  - `analyze_frontend()`: `App.tsx` 라우트→컴포넌트 매핑 후 TSX 분석
+  - `fetch_menu_home()`: 백엔드 메뉴 API로 실제 화면명 획득
+  - `validate_routes_web_mapping()`: 라우트별 웹 존재 HTTP 확인
+- 3개 소스 교차검증 → 화면 1개당 메타데이터 dict 완성
+- 제목 우선순위: **메뉴 `prog_nm` > 프론트엔드 title > 라우트명**
+
+### ③ HTML 생성 (화면 단위)
+- `generate_all_tutorials()`가 화면을 순회하며 `generate_html()` 호출
+  1. `css_extractor`로 실 SCSS CSS 추출
+  2. `_fetch_real_data()`로 payload 조합·실백엔드 POST
+     - 성공 = REAL (실컬럼/실데이터, 50행 상한)
+     - 실패 = `_generate_mock_data()` 목업 (MOCK)
+  3. 사이드바/콘텐츠/가이드데이터/JS 조립
+  4. `luma-tutorials/{filename}-guide.html` 저장
+- 전 화면 완료 시 성공/실패 건수 집계
+
+### ④ 검증
+- `verify_tutorials.py`가 `luma-tutorials/*-guide.html` 전부 검사
+  (구조, GUIDE_DATA JSON, guide-id 일치, 필수 JS 함수)
+
+### ⑤ 소비
+- 사용자가 "wafer map 사용법 알려줘" → RAG 에이전트 `get_screen_tutorial("wafer_map")`
+  → HTML을 읽어 태그 제거 후 텍스트로 답변
+
+---
+
+## 6. 전체 흐름 다이어그램
+
+```mermaid
+flowchart TD
+    subgraph G1[① 트리거 — 실생성 진입점]
+        A1["app.py<br/>서버 기동 시 자동생성<br/>(현재 주석 비활성)"]
+        A2["run_batch.py<br/>배치 스케줄 / --now 즉시 실행"]
+        A3["luma_tools.py<br/>generate_tutorial_html<br/>(에이전트 도구)"]
+    end
+
+    G1 --> B["generator.py · generate_all_tutorials<br/>전체 화면 순회 루프 · 파일 저장"]
+    B --> C["screens.py · build_screens<br/>화면 메타데이터 목록 결정"]
+    C --> D{"screen_builder.py<br/>build_screens_dynamic<br/>동적 빌드 시도"}
+
+    D -- "성공" --> E["frontend_analyzer.py<br/>App.tsx 라우트 → TSX 분석<br/>제목·API·컬럼·사이드바 추출"]
+    D --> F["menu_client.py<br/>POST /api/v2/menu/home<br/>메뉴 prog_nm·url 조회"]
+    D --> G["web_validator.py<br/>라우트 → LUMA 웹<br/>HTTP 200 존재 검증"]
+    D -- "실패 폴백" --> S["screens.py 정적 SCREENS<br/>하드코딩 10개"]
+
+    E --> H["화면 메타데이터 dict<br/>title 우선순위<br/>prog_nm > 프론트 title > 라우트명"]
+    F --> H
+    G --> H
+    S --> H
+
+    H --> I["generator.py · generate_html<br/>단일 화면 HTML 조립"]
+
+    subgraph G2[② 각 화면 내부 3단계]
+        I1["css_extractor.py<br/>SCSS 평탄화<br/>fileProcessingResult / search"]
+        I2["_fetch_real_data<br/>payload 조합 + POST<br/>timeout 40s · lot_cd 후보 8개"]
+        I2 -- "성공 → REAL<br/>실컬럼·실데이터 (50행 상한)" --> I3
+        I2 -- "실패 → MOCK<br/>_generate_mock_data 동적 목업" --> I3
+        I3["HTML 조립<br/>사이드바·결과영역·가이드패널<br/>GUIDE_DATA / API_INFO / MOCK_DATA"]
+    end
+
+    I --> I1
+    I --> I2
+    I1 --> I3
+    I3 --> J
+
+    J["luma-tutorials/*-guide.html 저장"]
+    J --> V["verify_tutorials.py<br/>구조·guide-id 일치·필수 JS 함수 검증"]
+    V --> L["luma_tools.py<br/>get_screen_tutorial / list_tutorial_screens<br/>RAG 에이전트가 사용자 질의에 답변"]
+```
+
+---
+
+## 7. 생성 개수: 동적(최대 19) vs 정적(10)
+
+`build_screens()`이 개수를 결정한다.
+
+| 상황 | 생성 개수 | 설명 |
+|---|---|---|
+| 동적 빌드 성공 | **최대 19개** | `analyze_frontend` 라우트 + `/menu/home` 메뉴로 결정 (유동적) |
+| 동적 빌드 실패 | **10개** | `screens.py`의 하드코딩 `SCREENS` 폴백 |
+
+정적 10개 목록 (수작업으로 박혀 있는 폴백):
+```
+file_processing_result · wafer_map · wafer_cum_map · abt_summary
+trend_chart · fuse_usage · fail_address_distribution
+fail_address_detailmap · raw_table · lot_history
+```
+
+> **중요**: "메뉴가 10개라서 10개"가 아니다. 이 10개는 네트워크 없이도 돌아가도록
+> 만든 **정적 폴백 목록**. 동적 모드에서는 실제 메뉴/라우트로 최대 19개가 만들어진다.
+
+⚠️ `run_batch.py`의 `target_screens` 지정 경로는 **정적 `SCREENS`만** 필터링한다
+(`filtered = [s for s in SCREENS if s["name"] in target_screens]`).
+동적 메타데이터로 1개를 테스트하려면 §9의 방법 B를 사용해야 한다.
+
+---
+
+## 8. 설정 항목 (config.yml / config.dev.yml 동일)
+
+| 설정 | 현재값 | 비고 |
+|---|---|---|
+| `TUTORIAL_AUTO_GENERATE` | `false` | 서버 시작 시 자동생성 끔 |
+| `TUTORIAL_OUTPUT_DIR` | `luma-tutorials` | 출력 디렉토리 |
+| `FRONTEND_SOURCE_DIR` | `sqream-front` | 프론트 소스 위치 (TSX/SCSS 분석) |
+| `LUMA_API_BASE_URL` | `http://dev.luma.skhynix.com/api/v2` | View 버튼 API |
+| `LUMA_WEB_BASE_URL` | `http://dev.luma.skhynix.com` | 교차 검증용 웹 URL |
+
+배치 설정 (`batch_config.yml`):
+- `schedule_time` / `schedule_type`(daily) / `max_retries(3)` / `retry_interval(60)`
+- `target_screens: []` — **비어 있으면 전체, 지정 시 해당 화면만** (정적 목록 기준)
+
+산출물은 `.gitignore`에 `luma-tutorials/*.html`로 **커밋 제외**되어 있다.
+현재 `luma-tutorials/`에는 `*-guide.html`이 없고 `wafer-map-guide.zip`만 존재.
+
+---
+
+## 9. 단일 화면 생성 테스트
+
+### 방법 A. `batch_config.yml`로 1개만 (간단, 단 정적 목록 기준)
+```yaml
+batch:
+  target_screens: ["wafer_map"]
+```
+```bash
+python run_batch.py --now
+```
+
+### 방법 B. 파이썬 원라이너로 동적 빌드 거쳐 1개만 (권장)
+```bash
+python -c "import sys; sys.path.insert(0,'src'); \
+from src.workflows.html_gen.screens import build_screens; \
+from src.workflows.html_gen.generator import generate_html; \
+s=[x for x in build_screens() if x['name']=='wafer_map'][0]; \
+html=generate_html(s,'http://dev.luma.skhynix.com/api/v2'); \
+open('luma-tutorials/'+s['filename'],'w',encoding='utf-8').write(html); \
+print('OK',s['filename'],len(html.encode('utf-8')),'bytes')"
+```
+
+### 방법 C. 실데이터 조회만 1개 (가장 가벼움)
+```python
+from src.workflows.html_gen.generator import _fetch_real_data
+from src.workflows.html_gen.screens import build_screens
+for s in build_screens():
+    if s["name"] == "wafer_map":
+        r = _fetch_real_data(s)
+        print("REAL" if r else "MOCK", "cols=", len(r["columns"]) if r else 0)
+```
+
+> 권장 순서: **C → B**로 1개 화면을 먼저 확인한 뒤 전체 배치를 돌린다.
+
+---
+
+## 10. 생성 시간이 오래 걸리는 이유
+
+HTML 생성 자체가 아니라 **네트워크 호출**이 대부분의 시간을 차지한다.
+
+- 화면별 `_fetch_real_data()` — 엔드포인트 POST 타임아웃 **40초**
+- `/search` 옵션 조회 타임아웃 **25초**
+- `lot_cd` 후보 최대 **8개** 순회 (각 40초 초과 시)
+- 동적 빌드 시 `web_validator`가 라우트마다 HTTP GET (**10초** 타임아웃)
+
+→ 백엔드가 느리면 **화면 1개당 수십 초~수 분** 소요될 수 있다.
+
+---
+
+## 11. 알려진 문제점 / 개선 방향
+
+1. **자동생성이 사실상 꺼져 있음** — `app.py` 주석 + `TUTORIAL_AUTO_GENERATE: false`
+2. **`get_screen_tutorial`이 생성 파일에 의존** — HTML이 없으면 RAG 매뉴얼 답변이 공백 (평가셋 `EV-1-024`의 `tools_called` 기대 미충족 가능)
+3. **하드코딩 URL 불일치** — `_fetch_real_data()`가 `http://dev.luma.skhynix.com/api/v1`을 직접 박아둠 (config `/api/v2`와 분리, 문서 §한계와 동일 지적)
+4. **문서-코드 불일치** — `TUTORIAL_HTML_GENERATION_GUIDE.md`가 참조하는 `_e2e.py`가 프로젝트에 없음
+5. **regex 기반 프론트 분석 취약성** — TSX 패턴에 강결합. 프론트 리팩토링 시 엔드포인트 추출이 조용히 실패 가능
+6. **동적/정적 화면 수 불일치(19 vs 10)** — `generate_tutorial_html` docstring의 화면 목록도 정적 기준으로 어긋남
+
+---
+
+## 12. 관련 문서
+
+- [TUTORIAL_HTML_GENERATION_GUIDE.md](./TUTORIAL_HTML_GENERATION_GUIDE.md) — HTML 내부 구현·실데이터 반영률·검증 방법
+- [PROJECT_WORKFLOW_OVERVIEW.md](./PROJECT_WORKFLOW_OVERVIEW.md) — 도구 정의 레이어(TUTORIAL_TOOLS) 개요
+- [VECTORDB_MILVUS_GUIDE.md](./VECTORDB_MILVUS_GUIDE.md) — KB 인덱싱(매뉴얼 청크) 관련
+`
