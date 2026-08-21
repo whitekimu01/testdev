@@ -1,0 +1,22 @@
+요약 (한눈에 보기)
+
+| LNB 메뉴 | 라우트 | 보여주는 결과 | 핵심 API |
+|---|---|---|---|
+| DATA › ABT › File Processing Results | `/file_processing_result` | 파일 처리 상태 이력 | `/abt/file`, `/abt/download` |
+| DATA › ABT › Pivot Table | `/abt` | ABT 피벗 집계표 | `/abt/summary`, `/summary/download` |
+| DATA › RAW table & Download | `/raw_table` | RAW 데이터 그리드 + Excel | `/rawtable/{map_type}`, `/{map_type}/sbdf` |
+| DATA › Lot History Table | `/view_lot_history` | Lot 공정 이력 표 | `/history/{fab\|wt\|wlp\|kt}` |
+| CHART › ABT › ABT Fuse Usage | `/Chart/ViewFuseUsage` | Fuse 사용량 차트 | `/abt/fuse/{usage\|total}` |
+| CHART › ABT › Fail Address Distribution | `/Chart/ViewFailAddress` | 불량 어드레스 분포 차트 | `/abt/mat/category/{total\|mod}` |
+| CHART › ABT › Fail Address Detail Map | `/Chart/ViewFailAddress/DetailMap` | 결함 위치 히트맵 | `/abt/addr/map` |
+| CHART › ABT › Trend Chart | `/Chart/ViewTrendChart` | 카테고리별 추세 차트 | `/abt/category/trend` |
+| Wafer › Wafer Map | `/wafer/map` | 웨이퍼 위치별 맵 | `/wafer/{map_type}` |
+| Wafer › Wafer Cum Map | `/wafer/cum_map` | 누적 웨이퍼 맵 | `/wafer/cum/*`, `/wafer/detail/*` |
+| Wafer › Warpage Map | `/WarpageMap` | 휨 웨이퍼 맵+차트 | `/wafer/warpage*` |
+| Probe › Probe Trend Chart | `/Probe/TrendChart` | Probe 트렌드 차트 | `/trend/{map_type}` |
+| Probe › Response Trend Chart | `/Response/TrendChart` | 고객 응답 트렌드 차트 | `/trend/response_tsmc` |
+| Correlation › Correlation Chart | `/CorrelationChart` | 상관 산점도/분석 | `/predict/{map_type}` |
+| Correlation › Correlation Chart v2 | `/CorrelationChart_v2` | 모델링 기반 상관 분석 | `/modeling/*` |
+| (설정) Menu Setting | `/menu_setting` | 홈 메뉴 위젯 설정 | `/menu/home`, `/user/home/*` |
+| (설정) Group Setting | `/group_setting` | Lot Group 관리 | `/user/lot_group/*` |
+| 공통 › LLM 채팅 | 전 화면 | AI 답변(요약/조회) | `/agent/v1/invoke`
