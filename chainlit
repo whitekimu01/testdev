@@ -239,3 +239,183 @@ async def chat_completions(request: Request):
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8001)
 
+
+
+=====
+
+// config.toml
+
+...
+# Specify a custom build directory for the frontend.
+# This can be used to customize the frontend code.
+# Be careful: If this is a relative path, it should not start with a slash.
+custom_build = "./public/build"
+...
+
+
+// public/build/index.html
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minimal Chat</title>
+<!-- Socket.IO 클라이언트 (CDN). 내부망에서 막히면 아래 '주의' 참고 -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; height:100vh; display:flex; flex-direction:column;
+         background:#0f1117; color:#e6e6e6;
+         font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display:flex; align-items:center; gap:10px; padding:10px 16px;
+           border-bottom:1px solid #2a2e3a; }
+  .dot { width:9px; height:9px; border-radius:50%; background:#ff6b6b; }
+  .dot.on { background:#51cf66; }
+  #log { flex:1; overflow-y:auto; padding:16px; display:flex;
+         flex-direction:column; gap:8px; }
+  .msg { max-width:76%; padding:9px 12px; border-radius:12px;
+         white-space:pre-wrap; word-break:break-word; line-height:1.45; }
+  .msg.user { align-self:flex-end; background:#2563eb; color:#fff;
+              border-bottom-right-radius:3px; }
+  .msg.assistant { align-self:flex-start; background:#262b38;
+                   border-bottom-left-radius:3px; }
+  .msg.err { align-self:center; background:#7f1d1d; color:#fecaca; font-size:13px; }
+  footer { display:flex; gap:10px; padding:12px 16px;
+           border-top:1px solid #2a2e3a; }
+  input { flex:1; padding:11px 14px; border-radius:10px;
+          border:1px solid #333a4d; background:#181c26; color:#fff;
+          font-size:15px; outline:none; }
+  input:focus { border-color:#2563eb; }
+  button { padding:0 22px; border:none; border-radius:10px;
+           background:#2563eb; color:#fff; font-size:15px; cursor:pointer; }
+</style>
+</head>
+<body>
+  <header>
+    <span class="dot" id="dot"></span>
+    <span id="status">연결 중...</span>
+  </header>
+  <div id="log"></div>
+  <footer>
+    <input id="input" type="text" placeholder="메시지를 입력하세요" autocomplete="off">
+    <button id="send">전송</button>
+  </footer>
+
+<script>
+(function () {
+  // UUID v4 생성 (Session ID, 메시지 ID에 사용 — 서버가 v4를 강제함)
+  function uuidv4() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = Math.random() * 16 | 0;
+      var v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  var sessionId = uuidv4();
+  var bubbles = {};   // message id -> DOM 노드
+  var socket;
+
+  function addMessage(role, text) {
+    var log = document.getElementById('log');
+    var div = document.createElement('div');
+    div.className = 'msg ' + role;
+    div.textContent = text;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+    return div;
+  }
+  function setStatus(text, on) {
+    document.getElementById('status').textContent = text;
+    document.getElementById('dot').classList.toggle('on', !!on);
+  }
+
+  // ---- Socket.IO 연결 (Chainlit 백엔드 규약) ----
+  socket = io('http://' + location.host, {
+    path: '/ws/socket.io',
+    transports: ['websocket'],
+    auth: {
+      sessionId: sessionId,
+      userEnv: '{}',
+      clientType: 'webapp',
+      chatProfile: null,
+      threadId: null
+    }
+  });
+
+  socket.on('connect', function () {
+    setStatus('연결됨', true);
+    // 이걸 보내야 서버 쪽 on_chat_start(인사말)가 실행됨
+    socket.emit('connection_successful');
+  });
+  socket.on('connect_error', function (err) {
+    setStatus('연결 오류: ' + ((err && err.message) || err), false);
+  });
+  socket.on('disconnect', function () {
+    setStatus('연결 끊김', false);
+  });
+
+  // ---- 서버 -> 클라이언트 이벤트 처리 ----
+  socket.on('new_message', function (step) {
+    if (!step || !step.id) return;
+    if (step.type === 'user_message' || step.type === 'assistant_message') {
+      var role = step.type === 'user_message' ? 'user' : 'assistant';
+      bubbles[step.id] = addMessage(role, step.output || step.content || '');
+    }
+  });
+  socket.on('update_message', function (step) {
+    if (step && bubbles[step.id]) bubbles[step.id].textContent = step.output || '';
+  });
+  socket.on('stream_start', function (step) {
+    if (!step || !step.id) return;
+    if (!bubbles[step.id]) bubbles[step.id] = addMessage('assistant', step.output || '');
+  });
+  socket.on('stream_token', function (data) {
+    if (!data || !data.id || !data.token) return;
+    if (!bubbles[data.id]) bubbles[data.id] = addMessage('assistant', '');
+    bubbles[data.id].textContent += data.token;
+    var log = document.getElementById('log');
+    log.scrollTop = log.scrollHeight;
+  });
+  socket.on('delete_message', function (step) {
+    if (step && bubbles[step.id]) { bubbles[step.id].remove(); delete bubbles[step.id]; }
+  });
+  socket.on('toast', function (t) {
+    if (t && t.message) addMessage('err', '⚠️ ' + t.message);
+  });
+
+  // ---- 메시지 전송 ----
+  function send() {
+    var input = document.getElementById('input');
+    var text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+
+    addMessage('user', text);   // 내 메시지를 즉시 표시
+
+    socket.emit('client_message', {
+      message: {
+        name: 'User',
+        type: 'user_message',
+        id: uuidv4(),           // ★ 서버가 v4 UUID 검증함
+        threadId: null,
+        parentId: null,
+        output: text,
+        createdAt: new Date().toISOString()
+      },
+      fileReferences: null
+    });
+  }
+
+  document.getElementById('send').addEventListener('click', send);
+  document.getElementById('input').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') send();
+  });
+})();
+</script>
+</body>
+</html>
+
+
