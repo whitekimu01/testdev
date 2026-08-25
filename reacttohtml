@@ -1,0 +1,753 @@
+#!/usr/bin/env python3
+"""
+react_to_static_html.py
+
+React/TSX 프로젝트를 실행하지 않고 소스 코드만 분석해서
+정적 HTML + CSS를 생성하는 1차 버전.
+
+지원:
+- .jsx / .tsx / .js / .ts
+- JSX 기본 태그
+- 컴포넌트 import 추적
+- className
+- style={{...}} 일부 변환
+- CSS / SCSS / CSS Module 수집
+- public/static의 이미지 경로 보존
+- <Component /> 형태의 로컬 컴포넌트 재귀 분석
+- {조건 && <Component />} / 배열.map(...)의 정적 fallback
+- 결과: output/index.html + output/styles.css
+
+주의:
+- React 실행 결과를 100% 동일하게 재현하는 브라우저 렌더러가 아님.
+- JS 계산값/API 응답/useState 등의 동적 결과는 정적으로 알 수 없으므로
+  placeholder 또는 fallback으로 표시한다.
+"""
+
+import argparse
+import html
+import json
+import re
+import shutil
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+
+SOURCE_EXTS = {".jsx", ".tsx", ".js", ".ts"}
+STYLE_EXTS = {".css", ".scss"}
+IGNORE_DIRS = {
+    "node_modules", ".git", "dist", "build", ".next",
+    "coverage", ".cache", ".vite"
+}
+
+HTML_TAGS = {
+    "a", "abbr", "article", "aside", "audio", "b", "blockquote", "body",
+    "br", "button", "canvas", "caption", "code", "col", "colgroup", "dd",
+    "div", "dl", "dt", "em", "fieldset", "figcaption", "figure", "footer",
+    "form", "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hr",
+    "html", "i", "iframe", "img", "input", "label", "li", "main", "nav",
+    "ol", "option", "p", "pre", "section", "select", "small", "span",
+    "strong", "sub", "summary", "sup", "table", "tbody", "td", "textarea",
+    "tfoot", "th", "thead", "time", "tr", "ul", "video", "svg", "path",
+    "circle", "line", "g", "link", "meta", "title"
+}
+
+VOID_TAGS = {
+    "area", "base", "br", "col", "embed", "hr", "img", "input",
+    "link", "meta", "param", "source", "track", "wbr"
+}
+
+
+def read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return path.read_text(encoding="cp949", errors="ignore")
+
+
+def strip_comments(s: str) -> str:
+    s = re.sub(r"/\*.*?\*/", "", s, flags=re.S)
+    s = re.sub(r"(^|\s)//.*", r"\1", s)
+    return s
+
+
+def find_matching(s: str, start: int, opening="{", closing="}") -> int:
+    depth = 0
+    quote = None
+    i = start
+    while i < len(s):
+        c = s[i]
+        if quote:
+            if c == "\\":
+                i += 2
+                continue
+            if c == quote:
+                quote = None
+        else:
+            if c in "'\"`":
+                quote = c
+            elif c == opening:
+                depth += 1
+            elif c == closing:
+                depth -= 1
+                if depth == 0:
+                    return i
+        i += 1
+    return -1
+
+
+def split_top_level(s: str, delimiter=",") -> List[str]:
+    result = []
+    start = 0
+    depth = 0
+    quote = None
+    for i, c in enumerate(s):
+        if quote:
+            if c == "\\":
+                continue
+            if c == quote:
+                quote = None
+        else:
+            if c in "'\"`":
+                quote = c
+            elif c in "([{":
+                depth += 1
+            elif c in ")]}":
+                depth -= 1
+            elif c == delimiter and depth == 0:
+                result.append(s[start:i].strip())
+                start = i + 1
+    tail = s[start:].strip()
+    if tail:
+        result.append(tail)
+    return result
+
+
+class ReactProject:
+    def __init__(self, root: Path):
+        self.root = root.resolve()
+        self.files: Dict[str, Path] = {}
+        self.styles: List[Path] = []
+        self.component_cache: Dict[str, str] = {}
+        self.visiting = set()
+        self.discover()
+
+    def discover(self):
+        for p in self.root.rglob("*"):
+            if not p.is_file():
+                continue
+            if any(part in IGNORE_DIRS for part in p.parts):
+                continue
+
+            rel = p.relative_to(self.root).as_posix()
+            self.files[rel] = p
+
+            if p.suffix.lower() in STYLE_EXTS:
+                self.styles.append(p)
+
+    def resolve_import(self, importer: Path, spec: str) -> Optional[Path]:
+        # 상대경로만 우선 추적한다.
+        if not spec.startswith("."):
+            return None
+
+        base = (importer.parent / spec).resolve()
+        candidates = []
+
+        if base.suffix:
+            candidates.append(base)
+        else:
+            for ext in SOURCE_EXTS:
+                candidates.append(base.with_suffix(ext))
+            for ext in STYLE_EXTS:
+                candidates.append(base.with_suffix(ext))
+            for ext in SOURCE_EXTS:
+                candidates.append(base / ("index" + ext))
+
+        for c in candidates:
+            if c.exists() and c.is_file():
+                return c
+
+        return None
+
+    def find_component_file(self, importer: Path, name: str, import_map) -> Optional[Path]:
+        spec = import_map.get(name)
+        if not spec:
+            return None
+        return self.resolve_import(importer, spec)
+
+    def parse_imports(self, source: str) -> Dict[str, str]:
+        result = {}
+
+        # import Foo from "./Foo"
+        for m in re.finditer(
+            r'import\s+([A-Za-z_$][\w$]*)\s+from\s+["\']([^"\']+)["\']',
+            source
+        ):
+            result[m.group(1)] = m.group(2)
+
+        # import { Foo, Bar as Baz } from "./components"
+        for m in re.finditer(
+            r'import\s*\{([^}]+)\}\s*from\s*["\']([^"\']+)["\']',
+            source
+        ):
+            names, spec = m.groups()
+            for item in names.split(","):
+                item = item.strip()
+                if not item:
+                    continue
+                parts = re.split(r"\s+as\s+", item)
+                result[parts[-1].strip()] = spec
+
+        return result
+
+    def extract_component_jsx(self, source: str, component_name: str) -> Optional[str]:
+        # function Component() { return (...) }
+        pattern = re.compile(
+            rf"(?:function|async\s+function)\s+{re.escape(component_name)}\s*\([^)]*\)"
+            r"[\s\S]*?\breturn\s*\(",
+            re.M
+        )
+        m = pattern.search(source)
+        if m:
+            start = m.end()
+            end = find_matching(source, start - 1, "(", ")")
+            if end >= 0:
+                return source[start:end]
+
+        # const Component = (...) => (...)
+        pattern = re.compile(
+            rf"(?:const|let|var)\s+{re.escape(component_name)}\s*="
+            r"[\s\S]*?=>\s*\(",
+            re.M
+        )
+        m = pattern.search(source)
+        if m:
+            start = m.end()
+            end = find_matching(source, start - 1, "(", ")")
+            if end >= 0:
+                return source[start:end]
+
+        # const Component = () => <div ... />
+        pattern = re.compile(
+            rf"(?:const|let|var)\s+{re.escape(component_name)}\s*="
+            r"[\s\S]*?=>\s*(<[\s\S]+)",
+            re.M
+        )
+        m = pattern.search(source)
+        if m:
+            return m.group(1).strip()
+
+        return None
+
+    def get_component_jsx(self, path: Path, name: str) -> Optional[str]:
+        key = f"{path}:{name}"
+        if key in self.component_cache:
+            return self.component_cache[key]
+
+        source = strip_comments(read_text(path))
+        jsx = self.extract_component_jsx(source, name)
+        if jsx:
+            self.component_cache[key] = jsx
+        return jsx
+
+    def find_entry(self) -> Tuple[Path, str]:
+        # 일반적인 Vite/CRA 엔트리 우선순위
+        preferred = [
+            ("src/App.tsx", "App"),
+            ("src/App.jsx", "App"),
+            ("src/App.ts", "App"),
+            ("src/App.js", "App"),
+            ("src/main.tsx", "App"),
+            ("src/main.jsx", "App"),
+            ("src/index.tsx", "App"),
+            ("src/index.jsx", "App"),
+        ]
+
+        for rel, name in preferred:
+            p = self.root / rel
+            if p.exists():
+                if name == "App":
+                    source = read_text(p)
+                    if self.extract_component_jsx(source, "App"):
+                        return p, "App"
+
+        # App 컴포넌트 검색
+        for p in self.files.values():
+            if p.suffix.lower() in SOURCE_EXTS:
+                source = read_text(p)
+                if self.extract_component_jsx(source, "App"):
+                    return p, "App"
+
+        raise RuntimeError(
+            "App 컴포넌트를 찾지 못했습니다. --entry 옵션으로 엔트리를 지정하세요."
+        )
+
+    def resolve_asset(self, importer: Path, value: str) -> Optional[str]:
+        if not value or value.startswith(("http://", "https://", "data:", "#")):
+            return value
+
+        # /xxx 는 public 기준으로 간주
+        if value.startswith("/"):
+            candidate = self.root / "public" / value.lstrip("/")
+            if candidate.exists():
+                return value
+            return value
+
+        candidate = (importer.parent / value).resolve()
+        if candidate.exists():
+            try:
+                rel = candidate.relative_to(self.root)
+                return "/" + rel.as_posix()
+            except ValueError:
+                return value
+
+        return value
+
+    def jsx_to_html(
+        self,
+        jsx: str,
+        importer: Path,
+        import_map: Dict[str, str],
+        depth=0,
+    ) -> str:
+        if depth > 20:
+            return "<!-- component recursion limit -->"
+
+        out = []
+        i = 0
+        n = len(jsx)
+
+        while i < n:
+            if jsx[i] == "<":
+                # HTML comment
+                if jsx.startswith("<!--", i):
+                    end = jsx.find("-->", i + 4)
+                    if end < 0:
+                        break
+                    i = end + 3
+                    continue
+
+                # closing tag
+                m = re.match(r"</\s*([A-Za-z_$][\w$.-]*)\s*>", jsx[i:])
+                if m:
+                    out.append(f"</{m.group(1)}>")
+                    i += m.end()
+                    continue
+
+                # opening tag
+                m = re.match(r"<\s*([A-Za-z_$][\w$.-]*)", jsx[i:])
+                if m:
+                    tag = m.group(1)
+                    pos = i + m.end()
+
+                    # tag 내부 끝 > 탐색
+                    quote = None
+                    brace_depth = 0
+                    j = pos
+                    while j < n:
+                        c = jsx[j]
+                        if quote:
+                            if c == "\\":
+                                j += 2
+                                continue
+                            if c == quote:
+                                quote = None
+                        else:
+                            if c in "'\"":
+                                quote = c
+                            elif c == "{":
+                                brace_depth += 1
+                            elif c == "}":
+                                brace_depth -= 1
+                            elif c == ">" and brace_depth == 0:
+                                break
+                        j += 1
+
+                    if j >= n:
+                        out.append(html.escape(jsx[i:]))
+                        break
+
+                    raw_attrs = jsx[pos:j]
+                    self_close = raw_attrs.rstrip().endswith("/")
+                    if self_close:
+                        raw_attrs = raw_attrs.rstrip()[:-1]
+
+                    attrs = self.parse_attrs(raw_attrs, importer)
+
+                    # 사용자 정의 컴포넌트
+                    if tag[0].isupper():
+                        component_path = self.find_component_file(
+                            importer, tag, import_map
+                        )
+                        if component_path:
+                            child_imports = self.parse_imports(read_text(component_path))
+                            child_jsx = self.get_component_jsx(component_path, tag)
+
+                            if child_jsx:
+                                rendered = self.jsx_to_html(
+                                    child_jsx,
+                                    component_path,
+                                    child_imports,
+                                    depth + 1
+                                )
+
+                                # 컴포넌트 자체의 className/style이 있으면 wrapper 적용
+                                cls = attrs.get("class", "")
+                                style = attrs.get("style", "")
+
+                                if cls or style:
+                                    wrapper_attrs = []
+                                    if cls:
+                                        wrapper_attrs.append(f'class="{html.escape(cls)}"')
+                                    if style:
+                                        wrapper_attrs.append(f'style="{html.escape(style)}"')
+                                    rendered = (
+                                        f"<div {' '.join(wrapper_attrs)}>{rendered}</div>"
+                                    )
+
+                                out.append(rendered)
+                                i = j + 1
+                                continue
+
+                        # 외부 UI 라이브러리 등은 placeholder
+                        label = tag
+                        out.append(
+                            f'<div class="component-placeholder" '
+                            f'data-component="{html.escape(label)}">'
+                            f'[{html.escape(label)}]'
+                            f'</div>'
+                        )
+                        i = j + 1
+                        continue
+
+                    attr_text = self.render_attrs(attrs)
+                    if tag.lower() in VOID_TAGS:
+                        out.append(f"<{tag}{attr_text}>")
+                    elif self_close:
+                        out.append(f"<{tag}{attr_text}></{tag}>")
+                    else:
+                        out.append(f"<{tag}{attr_text}>")
+
+                    i = j + 1
+                    continue
+
+            # JSX expression { ... }
+            if jsx[i] == "{":
+                end = find_matching(jsx, i)
+                if end < 0:
+                    out.append(html.escape(jsx[i:]))
+                    break
+
+                expr = jsx[i + 1:end].strip()
+                out.append(self.expression_to_html(expr, importer, import_map, depth))
+                i = end + 1
+                continue
+
+            # 일반 text
+            j = jsx.find("<", i)
+            k = jsx.find("{", i)
+            candidates = [x for x in (j, k) if x >= 0]
+            end = min(candidates) if candidates else n
+            text = jsx[i:end]
+
+            if text.strip():
+                out.append(html.escape(re.sub(r"\s+", " ", text).strip()))
+
+            i = end
+
+        return "".join(out)
+
+    def expression_to_html(
+        self,
+        expr: str,
+        importer: Path,
+        import_map: Dict[str, str],
+        depth: int,
+    ) -> str:
+        # 문자열
+        if (
+            len(expr) >= 2
+            and expr[0] in "'\"`"
+            and expr[-1] == expr[0]
+        ):
+            return html.escape(expr[1:-1])
+
+        # 조건부 렌더링: condition && <Component/>
+        m = re.search(r"&&\s*(<[\s\S]+)$", expr)
+        if m:
+            return self.jsx_to_html(
+                m.group(1), importer, import_map, depth + 1
+            )
+
+        # ternary: condition ? <A/> : <B/>
+        q = split_top_level(expr, "?")
+        if len(q) == 2:
+            parts = split_top_level(q[1], ":")
+            if parts:
+                branch = parts[0]
+                if branch.strip().startswith("<"):
+                    return self.jsx_to_html(
+                        branch.strip(), importer, import_map, depth + 1
+                    )
+
+        # array.map(() => <tr .../>)
+        if ".map(" in expr:
+            m = re.search(r"=>\s*(<[\s\S]+)$", expr)
+            if m:
+                rendered = self.jsx_to_html(
+                    m.group(1), importer, import_map, depth + 1
+                )
+                # 데이터가 없으므로 대표 row 1개 생성
+                return rendered
+
+        # JSX fragment
+        if expr.startswith("<"):
+            return self.jsx_to_html(expr, importer, import_map, depth + 1)
+
+        # 숫자/boolean/null
+        if re.fullmatch(r"(true|false|null|undefined|-?\d+(?:\.\d+)?)", expr):
+            return "" if expr in {"false", "null", "undefined"} else html.escape(expr)
+
+        # JSX 변수/props/state는 placeholder
+        safe = html.escape(expr)
+        return f'<span class="dynamic-value" data-expression="{safe}"></span>'
+
+    def parse_attrs(self, raw: str, importer: Path) -> Dict[str, str]:
+        attrs = {}
+
+        # JSX attribute parser
+        pattern = re.compile(
+            r'([A-Za-z_$][\w$:-]*)'
+            r'(?:\s*=\s*'
+            r'(?:'
+            r'"([^"]*)"'
+            r"|'([^']*)'"
+            r'|\{([\s\S]*?)\}'
+            r'))?'
+        )
+
+        for m in pattern.finditer(raw):
+            name = m.group(1)
+            value = m.group(2) or m.group(3)
+            expr = m.group(4)
+
+            if value is None and expr is None:
+                value = name
+            elif expr is not None:
+                value = self.expression_to_attr(expr.strip(), importer)
+
+            # React -> HTML
+            name = {
+                "className": "class",
+                "htmlFor": "for",
+                "tabIndex": "tabindex",
+                "readOnly": "readonly",
+                "autoFocus": "autofocus",
+            }.get(name, name)
+
+            # 이벤트는 정적 HTML에서 제거
+            if name.startswith("on") and len(name) > 2:
+                continue
+
+            # React-only props 제거
+            if name in {"key", "ref", "children"}:
+                continue
+
+            if value is not None:
+                attrs[name] = value
+
+        return attrs
+
+    def expression_to_attr(self, expr: str, importer: Path) -> str:
+        expr = expr.strip()
+
+        # style={{ color: "red", marginTop: 10 }}
+        if expr.startswith("{") and expr.endswith("}"):
+            inner = expr[1:-1]
+            pairs = split_top_level(inner)
+            css = []
+            for pair in pairs:
+                if ":" not in pair:
+                    continue
+                k, v = pair.split(":", 1)
+                k = k.strip()
+                v = v.strip()
+                k = re.sub(r"([A-Z])", lambda m: "-" + m.group(1).lower(), k)
+                v = v.strip("\"'")
+                css.append(f"{k}:{v}")
+            return ";".join(css)
+
+        # 문자열 리터럴
+        if len(expr) >= 2 and expr[0] in "'\"`" and expr[-1] == expr[0]:
+            return expr[1:-1]
+
+        # 단순 값
+        return f"{{{expr}}}"
+
+    def render_attrs(self, attrs: Dict[str, str]) -> str:
+        result = []
+        for k, v in attrs.items():
+            if v == k and k in {
+                "disabled", "checked", "selected", "multiple",
+                "required", "readonly", "autofocus"
+            }:
+                result.append(k)
+            else:
+                result.append(f'{k}="{html.escape(str(v), quote=True)}"')
+
+        return (" " + " ".join(result)) if result else ""
+
+    def collect_css(self) -> str:
+        chunks = []
+
+        for p in sorted(self.styles):
+            try:
+                rel = p.relative_to(self.root).as_posix()
+            except ValueError:
+                rel = str(p)
+
+            content = read_text(p)
+
+            # SCSS의 대표적인 중첩은 브라우저 CSS로 그대로 쓸 수 없으므로
+            # 일단 원본 보존 + 주석 표시.
+            if p.suffix.lower() == ".scss":
+                chunks.append(
+                    f"/* SOURCE SCSS: {rel}\n"
+                    f"   SCSS nesting/mixins may require preprocessing. */\n"
+                    f"{content}\n"
+                )
+            else:
+                chunks.append(f"/* SOURCE: {rel} */\n{content}\n")
+
+        chunks.append("""
+/* Generated fallback styles */
+.component-placeholder {
+  display: inline-block;
+  padding: 8px 12px;
+  border: 1px dashed #999;
+  color: #666;
+}
+
+.dynamic-value {
+  display: inline-block;
+  min-width: 8px;
+}
+""")
+
+        return "\n\n".join(chunks)
+
+    def generate(self, entry: Optional[str], output: Path):
+        if entry:
+            entry_path = (self.root / entry).resolve()
+            if not entry_path.exists():
+                raise RuntimeError(f"entry 파일이 없습니다: {entry}")
+            entry_name = "App"
+            # export default function Foo 형태
+            source = read_text(entry_path)
+            m = re.search(
+                r'export\s+default\s+(?:function|class)\s+([A-Za-z_$][\w$]*)',
+                source
+            )
+            if m:
+                entry_name = m.group(1)
+            elif "export default App" in source:
+                entry_name = "App"
+        else:
+            entry_path, entry_name = self.find_entry()
+
+        source = read_text(entry_path)
+        imports = self.parse_imports(source)
+        jsx = self.get_component_jsx(entry_path, entry_name)
+
+        if not jsx:
+            raise RuntimeError(
+                f"{entry_name} 컴포넌트의 JSX return을 찾지 못했습니다."
+            )
+
+        body = self.jsx_to_html(jsx, entry_path, imports)
+
+        output.mkdir(parents=True, exist_ok=True)
+
+        (output / "index.html").write_text(
+            """<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Generated React Static UI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+""" + body + """
+</body>
+</html>
+""",
+            encoding="utf-8"
+        )
+
+        (output / "styles.css").write_text(
+            self.collect_css(),
+            encoding="utf-8"
+        )
+
+        # public / static asset 복사
+        for dirname in ("public", "static"):
+            src = self.root / dirname
+            if src.exists() and src.is_dir():
+                dst = output / dirname
+                if dst.exists():
+                    shutil.rmtree(dst)
+                shutil.copytree(src, dst)
+
+        # 분석 정보
+        info = {
+            "source_root": str(self.root),
+            "entry": str(entry_path.relative_to(self.root)),
+            "entry_component": entry_name,
+            "source_files": len(self.files),
+            "style_files": [str(x.relative_to(self.root)) for x in self.styles],
+        }
+        (output / "analysis.json").write_text(
+            json.dumps(info, ensure_ascii=False, indent=2),
+            encoding="utf-8"
+        )
+
+        print(f"[OK] HTML : {output / 'index.html'}")
+        print(f"[OK] CSS  : {output / 'styles.css'}")
+        print(f"[OK] INFO : {output / 'analysis.json'}")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="React 소스 코드를 실행하지 않고 정적 HTML/CSS 생성"
+    )
+    parser.add_argument(
+        "project",
+        help="React 프로젝트 폴더"
+    )
+    parser.add_argument(
+        "-o", "--output",
+        default="generated_manual",
+        help="생성 폴더 (기본: generated_manual)"
+    )
+    parser.add_argument(
+        "--entry",
+        help="예: src/pages/UserPage.tsx"
+    )
+
+    args = parser.parse_args()
+
+    project = Path(args.project)
+    if not project.exists():
+        raise SystemExit(f"프로젝트 폴더가 없습니다: {project}")
+
+    try:
+        ReactProject(project).generate(
+            args.entry,
+            Path(args.output).resolve()
+        )
+    except Exception as e:
+        raise SystemExit(f"[ERROR] {e}")
+
+
+if __name__ == "__main__":
+    main()
