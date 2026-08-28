@@ -90,4 +90,22 @@
 
 
 
+// 매뉴얼 자동
+
+openapi.json 의 example로 파라미터를 맞추면?
+프론트엔드 코드에서 가져온 endpoint가 완벽하지않음, /data/rawDownload 은 실제 openapi.json에 없음 /data/rawDownload/* 이렇게 다른게 나눠줘있음
+
+searchable 최종: ['lot_cd', 'oper_desc', 'mode', 'pre_cs_cnt', 'lot_id', 'param_nm', 'oper_desc', 'param_nm']
+값 중복으로 append 안하게 수정
+
+우선 개발 목표
+1. search 실패 없게
+2. 실 데이터 조회 실패 해결 or 목업 서버 데이터 or openapi.json 의 example로 진행
+3. 우선 정적 레이아웃 와벽히 반영 - 사이드
+4. 우선 정적 레이아웃 와벽히 반영 - 컨텐츠
+
+
+
+
+
 
