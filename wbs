@@ -1236,3 +1236,11 @@ wbs 코드 구현 상세 확인 (뭐하는 기능인지 내용 알아야함)
 8. 에이전트 응답 메시지 수신
 -> output_node → gaia_return_adapter → build_bot_response (SSE final 이벤트 + SQLite 저장)
 
+구현된 부분과 앞으로 남은 부분 설명해줘
+1. Validate API Response Tool 구현, 이부분 진행중인데 45%임
+-> check_evidence(완료 증거 검증) 미연결 상태, 답변 근거는 있으나 검증이 안붙어있어 사용 계획 세울 예정 
+-> AGENTS.md 응답 계약(answer_type/evidence/limits) 미구현, 도구 응답 표준 검증(빈결과, 데이터없음으로 표시 제각각)
+2. analytic code tool 구현, 이부분 진행중인데 60%임
+-> 컴포넌트 분석 구현됨, 코드분석엔진은 완료됨, 툴등록은 필요(analyze)frontend_screen) 차트분석기능 필요
+3. generate html tool 구현, 이부분 진행중인데 70%임
+-> generate_tutorial_html은 툴등록되어잇음, 가이드 생성 설명 및 데이터 표시 정확도가 필요함, 실데이터 조회 필요
