@@ -14,6 +14,17 @@ mkdir -p ~/.ssh && chmod 700 ~/.ssh
 # <pod>:/root/.ssh/deploy_key
 chmod 600 ~/.ssh/deploy_key
 
+// 
+# 1) 키 내용 확인 — 개인키여야 함
+head -1 ~/.ssh/deploy_key
+# → -----BEGIN OPENSSH PRIVATE KEY----- 이어야 함
+# 2) 이 키의 공개키 추출 → Bitbucket에 등록한 키와 비교
+ssh-keygen -y -f ~/.ssh/deploy_key
+# 출력이 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINJ3V... 로 시작하면 페어 정상
+
+// 키 지정 및 git 클론
+GIT_SSH_COMMAND="ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes" \
+git clone ssh://git@bitbucket.~.com:<port>/~/~-front.git
 -----
 
 배포시 자동 클론
@@ -21,7 +32,7 @@ chmod 600 ~/.ssh/deploy_key
 mkdir -p ~/deploy-key && cd ~/deploy-key
 # ① 생성 (전용 키 — 개인 id_ed25519 재사용 금지, 패스프레이즈 없음)
 ssh-keygen -t ed25519 -f deploy_key -N ""
-# ② 공개키 출력 → Bitbucket project-front Access keys에 read-only 등록
+# ② 공개키 출력 → Bitbucket ~-front Access keys에 read-only 등록
 cat deploy_key.pub
 # ③ 개인키를 base64 한 줄로 → 바로 클립보드에 복사 (Git Bash 기준)
 base64 -w0 deploy_key | clip.exe
