@@ -22,9 +22,20 @@ head -1 ~/.ssh/deploy_key
 ssh-keygen -y -f ~/.ssh/deploy_key
 # 출력이 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINJ3V... 로 시작하면 페어 정상
 
-// 키 지정 및 git 클론
+// 키 지정 및 git 클론 (deploy_key는 임의로 만든 키라 지정)
 GIT_SSH_COMMAND="ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes" \
 git clone ssh://git@bitbucket.~.com:<port>/~/~-front.git
+
+// ssh는 .ssh 폴더를 전부 뒤지는 게 아니라, 정해진 기본 이름만 자동으로 시도
+ex)
+~/.ssh/id_ed25519      ← ed25519 키
+~/.ssh/id_rsa          ← RSA 키
+~/.ssh/id_ecdsa
+~/.ssh/id_dsa
+
+cp ~/.ssh/luma_front_deploy_key ~/.ssh/id_ed25519
+chmod 600 ~/.ssh/id_ed25519
+git clone ssh://git@bitbucket.skhynix.com:7999/luma/sqream-front.git   # 이제 그냥 됨t
 -----
 
 배포시 자동 클론
