@@ -1,3 +1,21 @@
+파드로 git clone 설정
+// deploy_key 개인키 
+-----BEGIN OPENSSH PRIVATE KEY-----
+...
+-----END OPENSSH PRIVATE KEY-----
+
+
+// deploy_key 공개키 bitbucket 계정에 ssh 키 등록
+
+// 폴더 생성
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+
+// 키 파일을 pod로 복사 (console 밖에서):
+# <pod>:/root/.ssh/deploy_key
+chmod 600 ~/.ssh/deploy_key
+
+-----
+
 배포시 자동 클론
 1. 
 mkdir -p ~/deploy-key && cd ~/deploy-key
