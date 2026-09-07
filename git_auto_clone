@@ -3,7 +3,7 @@
 mkdir -p ~/deploy-key && cd ~/deploy-key
 # ① 생성 (전용 키 — 개인 id_ed25519 재사용 금지, 패스프레이즈 없음)
 ssh-keygen -t ed25519 -f deploy_key -N ""
-# ② 공개키 출력 → Bitbucket sqream-front Access keys에 read-only 등록
+# ② 공개키 출력 → Bitbucket project-front Access keys에 read-only 등록
 cat deploy_key.pub
 # ③ 개인키를 base64 한 줄로 → 바로 클립보드에 복사 (Git Bash 기준)
 base64 -w0 deploy_key | clip.exe
@@ -14,7 +14,7 @@ spec:
       - name: <container-name>
       ## 매뉴얼 생성용 프론트엔드 소스 clone
       - name: FRONTEND_REPO_URL
-      value: "ssh://git@bitbucket.skhynix.com:7999/luma/sqream-front.git"
+      value: "ssh://git@bitbucket.~.com:<port>/~.git"
       ## GIT_SSH_KEY_B64: 위 SSH 키 개인키의 base64 한 줄 값 (base64 -w0 <개인키파일>)
       - name: GIT_SSH_KEY_B64
-      value: "LS0tLS1CRUdJTiBPUEVOU1NIIFBSSVZBVEUgS0VZLS0tLS0KYjNCbGJuTnphQzFyWlhrdGRqRUFBQUFBQkc1dmJtVUFBQUFFYm05dVpRQUFBQUFBQUFBQkFBQUFNd0FBQUF0emMyZ3RaVwpReU5UVXhPUUFBQUNEU2QxVFdRa2c1c0doaUhLdlppWGJ2WEtmTTZ6cndDOGo0a05BUjd5aXFFUUFBQUtDV1dQU0dsbGowCmhnQUFBQXR6YzJndFpXUXlOVFV4T1FBQUFDRFNkMVRXUWtnNXNHaGlIS3ZaaVhidlhLZk02enJ3QzhqNGtOQVI3eWlxRVEKQUFBRUJ1MUtQclMwYXY5WEtqWEtUcERVbDJzU1pHYndQRkxVS2VJbmttVCt4WE1kSjNWTlpDU0Rtd2FHSWNxOW1KZHU5YwpwOHpyT3ZBTHlQaVEwQkh2S0tvUkFBQUFGbXgxYldFdFpHVjJMVzFoYm5WaGJDMWtaWEJzYjNrQkFnTUVCUVlICi0tLS0tRU5EIE9QRU5TU0ggUFJJVkFURSBLRVktLS0tLQo="
+      value: "LS0tL...FURSBLRVktLS0tLQo="
