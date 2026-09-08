@@ -1,0 +1,47 @@
+**GA**A AI 에이전트 표준 템플릿** (Python 3.11 / FastAPI / LangGraph / A2A 1.1.0). 에이전트 로직만 `src/workflows`에 추가하면 API·인증·배포·관측을 프레임워크가 알아서 처리해주는 구조입니다.
+
+```mermaid
+graph LR
+    A[GaiA Chat / Super Agent / Cube] -->|A2A JSON-RPC| B[GaiaService FastAPI]
+    C[REST 클라이언트] -->|/api/{workflow}| B
+    B --> D[LangGraph Workflow]
+    B --> E[S3 signed URL /file]
+    B --> F[Phoenix 관측 / Prometheus]
+    D --> G[Milvus RAG / MCP / DRM API]
+```
+
+# 핵심 기능
+
+**1. 에이전트 런타임 (프레임워크 본체)**
+- **Workflow 선택**: URL path로 워크플로우 지정 (`/api/{workflow}/...`), `GET /api/workflows`로 목록 조회
+- **LangGraph 기반**: `graph` 또는 `ainvoke/astream` 매니저만 구현하면 등록됨 (예제: `example/lang_test.py`, ADK 에이전트 예제 포함)
+- **응답 표준화**: 항상 `answer` + `metadata`(docs, images, knowhows, followup_questions, urls, trace_id) 계약으로 정규화
+
+**2. A2A 1.1.0 (에이전트 간 통신)**
+- `/`에서 JSON-RPC 수신, `/.well-known/agent-card.json`으로 AgentCard 제공
+- **SSE 스트리밍** 지원 (`message/stream`), v0.3 하위호환 포함
+- Super Agent 연동, **HITL(사람 개입)** resume 지원 (`docs/REMOTE_AGENT_HITL_CODING_GUIDE.md`)
+
+**3. 파일/RAG 인프라**
+- **S3 signed URL**: 검색 결과 문서에 만료 가능한 다운로드 URL 자동 생성 + `/file/{path}` 스트리밍 다운로드
+- **Milvus 벡터DB RAG**: Knowhow/문서/iflow 3종 컬렉션 설정 준비됨
+- **DRM 문서** 텍스트 추출 API 연동 설정
+
+**4. 운영/관측/보안**
+- **Phoenix(OTel) 트레이싱**: `gaia_return`(내부)과 `a2a_wire_response`(실제 송신) 분리 관측
+- Prometheus `/metrics`, accesskey 헤더 인증 미들웨어, CORS, 클라이언트 연결 끊김 감지
+- 프로필별 설정 분리 (`config.yml` / `dev` / `stg`)
+
+**5. 배포 (K8s 매니페스트 완비)**
+- `cicd/basic/{dev,stg,prd}/deployment.yml`: liveness/readiness probe, HPA, rolling update, Prometheus 스크랩 설정까지 표준화
+- 시작 시 `uv`로 런타임 의존성 자동 설치 (`runtime_requirements.py`)
+
+**6. AI 코딩 친화적 설계** (특징적)
+- `agent.md` + `docs/` 10개 가이드(워크플로우 개발, 파일 처리, HITL, 검증 등)가 **에이전트 코딩 도구용 지침**으로 구성 — Codex/Cursor 등에게 작업을 맡기기 좋게 문서화되어 있음
+
+# 왜 좋은가 (요약)
+
+1. **보일러플레이트 제로**: REST API + A2A + SSE 스트리밍 + 인증 + 관측을 직접 만들지 않고 워크플로우 로직에만 집중
+2. **사내 인프라 즉시 연동**: 사내 LLM 엔드포인트, Nexus 저장소, Kong gateway, Agent Market, Cube 봇 연동이 설정에 이미 반영됨
+3. **운영 안전장치 내장**: import 시점 외부 연결 금지, core 수정 금지 등 가드레일 문서로 품질 일관성 확보
+4. **검증 체크리스트/스모크 테스트 문서**가 있어 개발-검증-배포 흐름이 정형화됨
