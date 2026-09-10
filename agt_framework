@@ -45,3 +45,25 @@ graph LR
 2. **사내 인프라 즉시 연동**: 사내 LLM 엔드포인트, Nexus 저장소, Kong gateway, Agent Market, Cube 봇 연동이 설정에 이미 반영됨
 3. **운영 안전장치 내장**: import 시점 외부 연결 금지, core 수정 금지 등 가드레일 문서로 품질 일관성 확보
 4. **검증 체크리스트/스모크 테스트 문서**가 있어 개발-검증-배포 흐름이 정형화됨
+
+
+//
+
+1. 에이전트가 툴콜링시 백엔드 api /api/v2이쪽에서 openapi.json 참조해서 동작하는 코드가있나?
+-> 에이전트의 도구 계층은 기동 시점에 openapi.json을 받아 캐시하고, 그 스펙으로 도구 파라미터를 구성하는 파이프라인을 이미 갖고 있음
+2. http://dev.luma.skhynix.com/api/v2/openapi.json 에 맞춰서 응답을 다 대응할 수 있게 개선 가능?
+3. 가이아 chat api가 chainlit 대체 가능한 것 3가지 분석
+1) SSE 스트리밍 채팅 ↔ Chainlit 메시지 스트리밍
+->
+- `POST /{workflow}/gaia/completion` — `GAIA_OUTPUT_STREAM` 설정 시 `stream_graph()`(`src/common/response_formatter.py` L222)로 `text/event-stream` 응답, 미설정 시 `build_bot_response()`(L179) 블로킹 응답
+- 토큰 단위 스트리밍, 중간 도구 상태 표기, trace_id 부여까지 처리
+ 2) 세션 히스토리 관리 ↔ Chainlit 내장 히스토리
+- 사용자/어시스턴트 메시지 SQLite(`session_history`) 자동 저장, 세션 제목 자동 생성
+- CRUD API: `GET /sessions?user_id=`, `GET /sessions/{id}/messages`, `DELETE /sessions/{id}`, `PATCH /sessions/{id}`(이름 변경), 만료 세션 자동 정리
+ 3) 파일 업로드 RAG + SSO 인증 ↔ Chainlit 첨부파일/OAuth
+- `POST /{workflow}/api/file/upload` → `parse_document` → Milvus 인덱싱 → RAG 검색 지원 (PDF/DOCX/XLSX/MD/TXT/HTML/CSV)
+- `/api/auth/user`에서 SSO 헤더 기반 사용자 확인 + 익명 `gaia_user_id` 쿠키(30일) 발급 — 별도 OAuth 설정 불필요
+보너스: `POST /{workflow}/api/completion` — OpenAI Chat Completion 호환 API(`stream_openai_chat_completion`, L402)라서 표준 클라이언트도 바로 연결 가능.
+① openapi.json 참조 파이프라인은 이미 존재하고, 
+② 이를 7개 → 전체 커버리지로 확장하려면 "OpenAPI 캐시 기반 제네릭 도구 + 응답 정규화 + 읽기전용 화이트리스트"가 현실적이며, 
+③ Chainlit 대체 기능 3종(스트리밍/세션관리/파일RAG+SSO)은 이미 Gaia chat API에 구현 완료 상태입니다.
