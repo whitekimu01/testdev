@@ -1335,3 +1335,40 @@ WBS 항목을 실제 코드와 매핑하기 위해 소스 구조를 빠르게 �
 | 활성화 스위치 | 매니페스트에 `HCP_ACTIVE_PROFILE` 추가 + `config.stg.yml` 실값 보완 | 위 전부 |
 
 이전에 정리한 구현 계획(Step 1~4)이 곧 10%→100% 로드맵이라, 고객에게 "골격 완성, 인프라 연동 후 스위치 온"으로 설명하시면 되고 — 코드 작업 자체는 하루 내 가능하니 일정 얘기가 나오면 바로 착수할 수 있습니다.
+
+
+
+
+
+
+결론부터: **대부분 "얼추 맞음" 수준이 아니라 실제 코드로 검증 가능한 수준입니다.** 다만 100% 항목 중 3개는 고객이 "어떻게?"라고 파고들 때 대비할 근거를 미리 알아둬야 하는 것들이 있고, 설계 문서와 구현값이 어긋난 1건도 있습니다.
+
+## ✅ 코드로 완전히 검증되는 100% 항목 (자신 있게 설명 가능)
+
+이 항목들은 파일·로직까지 확인했으므로 그대로 보고하셔도 됩니다:
+
+- **State 설계** — `agentic_state.py` AgentState 40여 필드 (문서 그대로 구현됨)
+- **Workflow/Node/Edge 설계** — `build_graph()` + conditional edge 4종 실존
+- **Sub 에이전트 라우팅 + 컨피던스 체크** — `classifier.py` 3단계 임계치(0.35/0.8/0.6) + margin 기반 신뢰도 + routing_node 게이트(≥0.7) 실제 값으로 확인
+- **Tool 목록/실행/백엔드 전달** — `AGENT_TOOLS_MAP`, `_execute_single_tool` 병렬 실행, `luma_api_mapper.validate_and_build()` v2 바디 빌드 확인
+- **상태 저장/트레이싱** — SqliteCheckpointSaver, Phoenix OTel 초기화 실존
+- **대화 에이전트 전달** — `_llm_reasoning_impl`의 이력/메모리 주입 코드 확인
+
+## ⚠️ 100%인데 예상 질문 대비가 필요한 항목 3개
+
+| 항목 | 실제 구현 | 예상 질문 & 답변 근거 |
+|---|---|---|
+| **Tool Calling 컨피던스 체크** 55→100% | `semantic_matcher.match_tools_semantic()`의 유사도 임계치 탈락 + `dynamic_tool_policy` 의도 기반 도구 제한 | *"컨피던스가 어디에 수치로 있나?"* → 명시적 confidence 점수가 아니라 **임베딩 유사도 임계치(TOOL_MATCH_THRESHOLD) + 의도 기반 도구 세트 제한** 방식입니다. 점수 필드 자체는 없으니 이 용어로 설명할 때 "유사도 임계치 기반 사전 차단"으로 표현 권장 |
+| **Tool Calling Retry** 70→100% | `llm_core.reason()` 재시도(지수 백오프) + `_recover_tool_calls()` + validation retry + 강제 요약 | *"몇 번 재시도?"* → State 설계 문서는 **max_iter=8, retry=2**로 적혀 있는데 실제 코드는 **MAX_ITER=2, MAX_RETRY=1**로 축소되어 있습니다 (`orchestrator.py` L38-42, 응답 시간 단축 목적의 튜닝). 문서와 값이 다르니 질문 시 "추가 튜닝으로 2회로 조정"이라고 답할 준비 필요 |
+| **LLM 결과 설계 (Structured Output)** 70→100% | 분류는 `RequestClassification`(Pydantic) + JSON 파싱 폴백 방식 | *"with_structured_output(스키마 강제) 썼나?"* → 스키마 강제 바인딩이 아니라 **Pydantic 모델 + JSON 추출 폴백 + 유효성 클램프** 방식입니다. 최종 출력 계약(return_schema)은 확실하니, LLM 분류 부분은 "robust 파싱 + 유효값 검증 폴백"으로 표현하면 정확합니다 |
+
+## ⚠️ 명시적 불일치 1개 (State 설계 문서)
+
+`agentic_state.py` docstring에는 *"ReAct 루프 제어 (max_iter=8, retry=2)"* 라고 쓰여 있는데 실제 `orchestrator.py`는 `MAX_ITER=2, MAX_RETRY=1`입니다. 코드가 더 나은 방향(응답 시간 단축)으로 튜닝된 거라 기능상 문제는 없지만, **설계 문서와 구현이 다른 사례**라 고객 질의응답에서 숫자를 말할 때 주의하세요.
+
+## 나머지 100% 항목 판정
+
+- **Request Schema/Parameter 검증, 매뉴얼 자동 생성 외 데이터 계층, 컨텍스트 관리, 상태 저장/트레이싱, 대화 세션/목록/에이전트 전달** — 실구현 확인 완료, WBS 설명 그대로 방어 가능합니다.
+- **"사용자별 대화 세션 관리 90%"** 도 정확한 숫자입니다 — 세션 격리는 되지만 `user_id`를 클라이언트가 보내는 값을 그대로 믿고 있어서(위장 가능), 인증 게이트가 켜져야 100%가 되는 구조입니다. 남은 10%가 "인증 정보 검증" 항목과 정확히 연결됩니다.
+
+즉, WBS 표현 그대로 보고해도 되고, 위 3개 항목만 표현을 한 번 다듬으면 (유사도 임계치 / 재시도 2회 / JSON 파싱 폴백) 질문에 그대로 답 가능합니다.
