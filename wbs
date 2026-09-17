@@ -1244,3 +1244,60 @@ wbs 코드 구현 상세 확인 (뭐하는 기능인지 내용 알아야함)
 -> 컴포넌트 분석 구현됨, 코드분석엔진은 완료됨, 툴등록은 필요(analyze)frontend_screen) 차트분석기능 필요
 3. generate html tool 구현, 이부분 진행중인데 70%임
 -> generate_tutorial_html은 툴등록되어잇음, 가이드 생성 설명 및 데이터 표시 정확도가 필요함, 실데이터 조회 필요
+
+
+
+
+---
+
+WBS 항목을 실제 코드와 매핑하기 위해 소스 구조를 빠르게 파악하겠습니다.
+
+마지막으로 몇 가지 맵핑만 확인하겠습니다.
+
+코드 분석 완료했습니다. 각 항목을 실제 파일·구현 내역과 매핑해 한 줄씩 정리했습니다. 고객 보고용으로 바로 쓰실 수 있게 WBS 순서 그대로 정리했습니다.
+
+# WBS 수행 내역 (항목별 구현 요약)
+
+## 1. 데이터/도구 계층
+
+| 항목 | 한 줄 설명 (파일 + 구현 내용) |
+|---|---|
+| **Request Schema, Parameter 검증** 70→100% | `src/core/param_preflight.py` + `config/required_params.yml`로 LLM 호출 전 필수 파라미터 사전 게이트를 구현하고, `src/tools/luma_param_validator.py`(MenuSpec 기반 필수/타입 검증)·`src/tools/luma_api_mapper.py` `validate_and_build()`(v2 요청 바디 구조 자동 검증·lot_cd 자동 추론)·`src/routers/chat/router.py` Pydantic 스키마까지 3중 검증 체계 완성 |
+| **Validate Api Response Tool 구현** 45→85% | `src/tools/luma_verify.py`에 Stage1~4 회귀 검증기(엔드포인트 v2 경로·요청 바디 구조·오버레이 정합성·실데이터 4종 조회 등 8개 체크 자동 수행, 실패 시 exit 1)를 구현하고 `orchestrator.tool_execution_node`에 도구 응답 파싱/오류 정제 로직을 추가 — 응답 스키마 자동 비교 항목이 남아 진행 중 |
+| **매뉴얼 자동 생성 구현** 70→85% | `src/workflows/html_gen/generator.py` + `runtime_observer.py`(Playwright 실관측) + `run_batch.py` 배치로 LUMA 화면별 매뉴얼 HTML을 자동 생성하고, `src/routers/tutorial/router.py`로 `/tutorials` 서빙까지 완성 — 일부 화면의 관측 실패 케이스 보완이 남아 85% |
+| **샘플 가이즈 html 및 frontend 코드 분석** 65→100% | `src/workflows/html_gen/frontend_analyzer.py`가 `sqream-front` .tsx 소스를 정적 분석해 라우트별 데이터 엔드포인트를 자동 해석하고, `luma_web_ui_mapper.py`·`dom_snapshot.py`로 화면/파라미터 사전을 구축, `config.yml`의 `FRONTEND_SOURCE_DIR`로 연동 완료 |
+| **생성된 Example 데이터 조회** 0→30% | `src/workflows/html_gen/generator.py`의 `_fetch_real_data()`/`_search_first_option()`으로 생성 매뉴얼에 LUMA 실데이터(/search 옵션 동적 획득 + 3회 재시도 백오프, 실패 시 목업 폴백)를 주입하는 기반을 구축 — 화면별 실데이터 조회 확대가 남아 30% |
+
+## 2. LangGraph 에이전트 프레임워크
+
+| 항목 | 한 줄 설명 (파일 + 구현 내용) |
+|---|---|
+| **LangGraph Workflow 설계** 90→100% | `src/workflows/luma/orchestrator.py` `build_graph()`로 routing → dynamic_orchestration/agent_fanout → aggregation → cross_validation → finalize StateGraph를 완성하고 `route_after_routing` 조건 분기까지 확정 |
+| **State 설계 (Task, agent, Tool)** 90→100% | `src/workflows/agentic_state.py`의 `AgentState` TypedDict에 메시지 리듀서(add_messages), 에이전트/도구/검증/ReAct 카운터, 멀티턴 컨텍스트(turn_context, artifacts, dynamic_plan)까지 총 40여 개 필드를 표준화 |
+| **Node, Edge 설계** 90→100% | `build_graph()`에서 routing →(dynamic/fanout)→ aggregation → cross_validation →(output/correction) 조건부 에지 + `route_after_llm/tool_execution/validation` 4개 conditional edge로 ReAct 루프 제어 구현 |
+| **LLM 결과 설계 (Structured Output)** 70→100% | `src/utils/classifier.py` `RequestClassification`(Pydantic)로 분류 결과를 구조화하고, `src/common/return_schema.py`·`response_formatter.py`의 `OUTPUT_LIST_FIELDS(urls/docs/chart/vibe_page/params_request 등)` 계약으로 SSE 구조화 출력 확정 |
+| **에이전트 실행 상태 저장 및 트레이싱** 80→100% | `orchestrator._get_checkpointer()`의 `SqliteCheckpointSaver`(data/checkpoints.db, 서버 재시작 후에도 멀티턴 유지) + `src/gaia/core.py`의 `ensure_phoenix_tracing()`(OpenTelemetry→Phoenix)와 `src/common/phoenix_chat_history.py`로 상태 영속화 및 전 구간 트레이싱 완성 |
+| **에이전트 컨텍스트 관리** 80→100% | `orchestrator.py`의 `_merge_sub_state()`·`_inject_lot_ids_from_state()`로 턴 간 lot_cd/기간/화면 컨텍스트를 병합·재사용하고, `routing_node`가 `turn_context`/`artifacts`/`memory_context`(3계층 메모리)를 후속 질문에 자동 주입 |
+| **Sub 에이전트 라우팅 구현** 90→100% | `routing_node` + `src/utils/classifier.py` `RequestClassifier`로 임베딩(bge-m3) → 키워드 → LLM 3단계 분류로 analytic/file/rag/web/vibe 에이전트를 선택하고 `route_after_routing`에서 dynamic_orchestration/agent_fanout 경로를 결정 |
+| **Tool 목록 정의** 85→100% | `src/tools/luma_tools.py`의 `AGENT_TOOLS_MAP`(web/vibe/file/analytic별 도구 세트)·`TOOL_DISPLAY_LABELS` + `luma_tools.py` `dynamic_tool_policy`(상태 기반 도구 세트 동적 결정)로 도구 카탈로그 확정 |
+| **Tool 실행 구현 및 백엔드 전달** 85→100% | `orchestrator.tool_execution_node._execute_single_tool()`이 asyncio.to_thread 병렬 실행 + 라우팅 추출 파라미터 자동 병합(이전 화면 재사용, lot_id 정규화) 후 `luma_api_mapper.validate_and_build()`로 v2 요청 바디를 만들어 LUMA 백엔드 API 전달 |
+| **Sub 에이전트 라우팅 컨피던스 체크** 85→100% | `classifier.classify()`의 3단계 임계치 체인(임베딩≥0.35 → 키워드≥0.8 → LLM≥0.6 → 키워드 폴백)과 1/2위 격차(margin) 기반 신뢰도 산정을 `routing_node`(`fast_result.confidence >= 0.7` 게이트)에 적용 |
+| **Tool Calling 컨피던스 체크** 55→100% | `src/core/semantic_matcher.py` `match_tools_semantic()/get_best_tool()`(cosine 유사도 ≥ `TOOL_MATCH_THRESHOLD` 이하 탈락)와 `luma_tools.dynamic_tool_policy`의 의도 기반 도구 폭 제한으로 부적합 도구 호출을 사전 차단 |
+| **Tool Calling Retry 구현** 70→100% | `src/core/llm_core.py` `reason()`(max_retries + 지수 백오프), `orchestrator._recover_tool_calls()`(tool_calls 파싱 복구), `route_after_tool_execution`의 전부-에러 조기 종료/재추론 분기, `_validation_impl`의 `retry_count`(MAX_RETRY) 초과 시 tool_results 강제 요약으로 안정화 |
+
+## 3. 인증/대화 세션
+
+| 항목 | 한 줄 설명 (파일 + 구현 내용) |
+|---|---|
+| **인증 정보 검증** 0→10% | `src/gaia/core.py`의 `AuthMiddleware`(accesskey 검증 골격) + `resolve_sso_user_id()`(SSO 헤더/쿠키 파싱) + `GET /api/auth/user`(사용자 ID/SSO 여부 반환, 익명 ID 쿠키 발급)까지 골격 구현 — 프로파일 게이트 활성화와 Ingress SSO 헤더 주입이 선행되어야 해 10% |
+| **사용자별 대화 세션 관리** 60→90% | `src/routers/chat/session_history.py`(SQLite 스키마, save/delete_session, `user_id`별 격리) + `gaiaClient.ts`의 `getUserId()`가 `/api/auth/user`에서 사용자 ID를 조회해 세션 키로 사용 |
+| **대화 목록 조회** 70→90% | `session_history.list_sessions()` + 채팅 라우터 `GET /api/sessions?user_id=` 엔드포인트로 사용자별 최신순 세션 목록 조회, `purge_expired_sessions()`(보존 기간 30일 자동 정리) 포함 |
+| **대화 내용 쇼트텀 저장** 55→80% | `session_history.save_message()`(SQLite 대화 이력) + `src/memory/memory.py` `WorkingMemory`/`ShortTermMemory`(TTL 기반 턴 단위 저장) + `orchestrator._get_checkpointer()` SqliteCheckpointSaver로 멀티턴 컨텍스트 영속화 |
+| **대화 내용 롱텀 저장** 70→80% | `src/memory/memory.py` `LongTermMemory`(SQLite FTS5/Milvus 백엔드) + `MemoryManager.promote_session()`(조건 충족 세션 자동 승격) + `KnowledgeGraphStore`(엔티티/관계/트리플 추출 저장) 구현 — Milvus 전환·검색 품질 고도화가 남아 80% |
+| **대화 내용 에이전트 전달** 90→100% | `_llm_reasoning_impl`이 최근 대화 이력(원문 보존) + 3계층 메모리 검색 결과(`memory_context`)를 시스템 프롬프트에 주입하고, `response_formatter.build_bot_response()`가 session_id/turn 컨텍스트를 그래프 config로 전달 |
+
+몇 가지 참고사항:
+
+- **"Validate Api Response Tool"(85%)** 은 `luma_verify.py` 회귀 검증기로 매핑했는데, WBS상 별도 도구(예: 도구 카탈로그에 응답 검증 전용 tool)를 의도하셨다면 알려주세요 — 실제 구현 파일 기준으로 다시 매핑해드립니다.
+- **"생성된 Example 데이터 조회"(30%)** 는 매뉴얼 생성 시 실데이터 주입(`generator.py::_fetch_real_data`)으로 해석했는데, 이것도 의도가 다르면 확인 필요합니다.
+- **"인증 정보 검증(10%)"** 은 이전에 논의한 대로 SSO 파싱·middleware 골격만 있고 프로파일 게이트가 꺼진 상태라 10%가 맞습니다 — 고객 설명 시 "SSO 헤더 파싱/임시 ID 발급 골격 구현 완료, Ingress SSO 연동 후 활성화 예정"으로 설명하면 됩니다.
