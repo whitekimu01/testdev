@@ -284,3 +284,52 @@ HTML 생성 자체가 아니라 **네트워크 호출**이 대부분의 시간�
 - [PROJECT_WORKFLOW_OVERVIEW.md](./PROJECT_WORKFLOW_OVERVIEW.md) — 도구 정의 레이어(TUTORIAL_TOOLS) 개요
 - [VECTORDB_MILVUS_GUIDE.md](./VECTORDB_MILVUS_GUIDE.md) — KB 인덱싱(매뉴얼 청크) 관련
 `
+
+
+
+
+===
+
+// linux
+1)  공유 라이브러리 — Dockerfile 블록에서 RUN만 뗀 것
+echo "deb http://nexus.skhynix.com:8081/repository/APT-proxy-debian bullseye main" > /etc/apt/sources.list && \
+echo "deb http://nexus.skhynix.com:8081/repository/APT-proxy-debian bullseye-updates main" >> /etc/apt/sources.list && \
+apt-get update -qq && \
+apt-get install -y -qq --no-install-recommends \
+  libnspr4 libnss3 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+  libdrm2 libxkbcommon0 libatspi2.0-0 libx11-6 libxcomposite1 libxdamage1 \
+  libxext6 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 \
+  libasound2 libglib2.0-0 libatomic1 libxi6 libxtst6 \
+  fonts-liberation fonts-nanum && \
+rm -rf /var/lib/apt/lists/*
+2) 브라우저 주입 — COPY 대신 이미지 안에 이미 있는 zip을 사용
+python -c "import zipfile; zipfile.ZipFile('/app/vendor/playwright/chrome-headless-shell-linux64.zip').extractall('/opt/ms-playwright/chromium_headless_shell-1223')"
+chmod +x /opt/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell
+touch /opt/ms-playwright/chromium_headless_shell-1223/INSTALLATION_COMPLETE
+3) 런치 검증 — Dockerfile 마지막 줄과 동일, 단 앞에 env 붙임
+4) ) 배치 실행
+PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright python run_batch.py --now
+
+// dockerfile
+# chrome 실행 공유 라이브러리 설정
+RUN echo "deb http://nexus.skhynix.com:8081/repository/APT-proxy-debian bullseye main" \
+      > /etc/apt/sources.list \
+ && echo "deb http://nexus.skhynix.com:8081/repository/APT-proxy-debian bullseye-updates main" \
+      >> /etc/apt/sources.list \
+ && apt-get update -qq \
+ && apt-get install -y -qq --no-install-recommends \
+      libnspr4 libnss3 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+      libdrm2 libxkbcommon0 libatspi2.0-0 libx11-6 libxcomposite1 libxdamage1 \
+      libxext6 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 \
+      libasound2 libglib2.0-0 libatomic1 libxi6 libxtst6 \
+      fonts-liberation fonts-nanum \
+ && rm -rf /var/lib/apt/lists/*
+# chromium 주입 (빌드 시 추출 + 런치 검증)
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+COPY ./vendor/playwright/ /tmp/pw/
+RUN python -c "import zipfile; zipfile.ZipFile('/tmp/pw/chrome-headless-shell-linux64.zip').extractall('/opt/ms-playwright/chromium_headless_shell-1223')" \
+  && chmod +x /opt/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell \
+  && touch /opt/ms-playwright/chromium_headless_shell-1223/INSTALLATION_COMPLETE \
+  && python -c "from playwright.sync_api import sync_playwright; pw=sync_playwright().start(); b=pw.chromium.launch(headless=True, args=['--no-sandbox','--disable-dev-shm-usage','--no-proxy-server']); print('[build] chromium OK:', b.version); b.close(); pw.stop()"
+
+
