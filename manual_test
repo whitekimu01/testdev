@@ -290,6 +290,50 @@ HTML 생성 자체가 아니라 **네트워크 호출**이 대부분의 시간�
 
 ===
 
+playwright pip 패키지 -> 설치됨, 사내 Nexus(pypi-group) 가 PyPI를 프록시 → 폐쇄망이어도 pip 가능
+chromium 바이너리 -> 없음, 브라우저는 pip으로 안 오고 playwright CDN에서 직접 받아야 함 → Nexus는 이걸 프록시하지 않음
+
+python -m playwright install chromium --dry-run
+(cmd)
+curl.exe -L -o "%USERPROFILE%\Downloads\chrome-headless-shell-linux64.zip" "https://cdn.playwright.dev/builds/cft/148.0.7778.96/linux64/chrome-headless-shell-linux64.zip"
+
+tail -f logs/batch/batch_20260917.log
+ls output/observed_shots
+
+ps aux --sort=-%cpu | head -10
+ps aux --sort=-%mem | head -16
+
+
+# cat /sys/fs/cgroup/memory.max 2>/dev/null || cat /sys/fs/cgroup/memory/memory.limit_in_bytes
+536870912
+# cat /sys/fs/cgroup/memory.current 2>/dev/null || cat /sys/fs/cgroup/memory/memory.usage_in_bytes
+498352128
+# free -m
+               total        used        free      shared  buff/cache   available
+Mem:          515270      166862       29327        4289      319081      342743
+Swap:              0           0           0
+# df -h /dev/shm
+Filesystem      Size  Used Avail Use% Mounted on
+shm              64M     0   64M   0% /dev/shm
+# ps aux | grep -E "chrome|node|headless" | grep -v grep
+# 
+
+**컨테이너 메모리 한도가 512MB인데, 앱(app.py)이 이미 475MB(93%)를 쓰고 있어서 chromium을 띄울 메모리가 물리적으로 없습니다.** 브라우저가 뜨려다가 OOM(메모리 부족)으로 죽고, playwright가 이 상황을 에러로 못 받아서 파이썬 프로세스가 무한 스핀(CPU 100%, 로그 없음)에 빠진 겁니다.
+
+memory.max     = 536870912  = 512MB   ← 컨테이너 메모리 한도
+memory.current = 475MB                   ← 이미 93% 사용 중
+여유 메모리     = 약 37MB
+chrome/node    = 0개 (띄우자마자 죽음)
+/dev/shm       = 0% 사용 (shm은 무죄였음)
+
+**현상**: 파드 메모리 limit 512MiB에서 `app.py`의 기본 RSS(~600MB)가 이미 한도를 초과하고, 일일 배치(`run_batch.py`, 매일 00:00)가 chromium headless browser(피크 ~1GB)를 실행하므로 OOMKilled가 발생합니다.
+**요청**: memory limit을 **2GiB 이상**으로 증설 요청드립니다. (계산 근거: app.py 600MB + 브라우저 1GB + 페이지 캐시/여유 400MB)
+
+chromium Dev 배포 batch 수동 실행 결과 요약
+① 설치/런치        ✅ 성공 (pod 테스트: chromium OK: 148.0.7778.96)
+② 브라우저 부팅     ✅ 성공 — ps에서 확인됨 (main + zygote + gpu + network 프로세스 존재)
+③ 페이지 열기(renderer) ❌ ← 여기서 메모리 부족으로 OOM kill → 여기서 멈춤
+
 // linux
 1)  공유 라이브러리 — Dockerfile 블록에서 RUN만 뗀 것
 echo "deb http://nexus.skhynix.com:8081/repository/APT-proxy-debian bullseye main" > /etc/apt/sources.list && \
