@@ -334,6 +334,8 @@ chromium Dev 배포 batch 수동 실행 결과 요약
 ② 브라우저 부팅     ✅ 성공 — ps에서 확인됨 (main + zygote + gpu + network 프로세스 존재)
 ③ 페이지 열기(renderer) ❌ ← 여기서 메모리 부족으로 OOM kill → 여기서 멈춤
 
+---
+
 // DEV 콘솔, k8s 할당된 메모리 체크
 > cat /sys/fs/cgroup/memory/memory.limit_in_bytes 2>/dev/null \
      || cat /sys/fs/cgroup/memory.max 2>/dev/null \
@@ -350,8 +352,6 @@ awk '/MemTotal/ {printf "%d MiB\n", $2/1024}' /proc/meminfo
 awk '/MemTotal/ {printf "%d GiB\n", $2/1024/1024}' /proc/meminfo
 # 사용 가능 여유까지
 grep -E 'MemTotal|MemAvailable' /proc/meminfo
-
-
 
 // linux
 1)  공유 라이브러리 — Dockerfile 블록에서 RUN만 뗀 것
