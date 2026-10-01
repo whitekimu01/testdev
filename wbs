@@ -1372,3 +1372,44 @@ WBS 항목을 실제 코드와 매핑하기 위해 소스 구조를 빠르게 �
 - **"사용자별 대화 세션 관리 90%"** 도 정확한 숫자입니다 — 세션 격리는 되지만 `user_id`를 클라이언트가 보내는 값을 그대로 믿고 있어서(위장 가능), 인증 게이트가 켜져야 100%가 되는 구조입니다. 남은 10%가 "인증 정보 검증" 항목과 정확히 연결됩니다.
 
 즉, WBS 표현 그대로 보고해도 되고, 위 3개 항목만 표현을 한 번 다듬으면 (유사도 임계치 / 재시도 2회 / JSON 파싱 폴백) 질문에 그대로 답 가능합니다.
+
+
+
+
+
+=====
+
+wbs 진행사항
+Validate Api Response Tool 구현 [85% -> 90%]
+-> src/guardrails/guardrails.py:125 — check_output_gate(): 위험문구 10종 정규식 검사
+-> src/workflows/luma/orchestrator.py:2577-2631 — _validate(): 빈 응답/LLM 오류문구/포맷/원인단정 금지 등 검증
+매뉴얼 자동 생성 구현 [85% -> 90%]
+-> 화면별 자동 생성, 코드 분석, 생성, 검증(verify_tutorials, html구조, 가이드추출, api정보)
+샘플 가이드 html 및 frontend 코드 분석 [90% -> 100%]
+-> 사이드바 및 컨텐츠 테이블 정확도 높음, 컨텐츠 차트 정확도 낮음
+Analytic Code Tool 구현 [60% -> 100%]
+-> luma_tools.py fetch_luma_data로 코드 분석?, frontend_analyzer.py 중에 툴등록 할만한게 있는지?
+Generate Html Tool 구현 [70% -> 85%]
+-> 화면별 가이드 HTML 생성, 
+인증정보 검증 [5% -> 100%]
+사용자별 대화 세션 관리 [90% -> 100%]
+-> 사용자별 세션 생성 및 관리(session_history.py generate_session_title: llm 제목 자동생성, UserSession: user_id 전파)
+대화 목록 조회 [90% -> 100%]
+-> 챗봇 사이드바의 내대화목록 (router.py /api/sessions, session_history.list_sessions, purge_expired_sessions: 보존기간 지난 세션 자동정리)
+-> 보존 기간 30일 설정, 목록/메시지/삭제 3개 엔드포인트도 구현됨
+-> chat_history.db	대화이력 UI 복원 + LLM 컨텍스트 주입
+대화 내용 쇼텀 저장 (SQLite) [80% -> 85%]
+-> SqliteCheckpointSaver (src/common/sqlite_saver.py:39),  실패 시 MemorySaver 폴백
+-> checkpoints.db	실행상태 복원 (그래프 상태 재개)
+대화 내용 롱텀 저장 (SQLite) [80% -> 85%]
+-> 질문 수신시 바로 저장하고 응답도 저장, 영속성(세션 복원·목록·컨텍스트 주입 근거)
+-> working/episodic.db 장기 메모리 승격의 원료 (6턴마다), 6턴 이후 장기 기억
+-> 컨텍스트 주입 payload["memory_context"] (router.py:310-330) 
+에러 처리 및 로깅 [ 50% -> 70%]
+-> 4군데 사용중, 도구(tools/lume_tools.py), SSE/스트리밍(response_formatter.py), 오케스트레이터(orchestrator.py), 배치(run_batch.py)
+
+보고
+1. 챗봇 예시 입력 기능, 도구 기능 추가, 기존 에이전트 4개를 도구화한 것
+2. 챗봇 링크 생성 정확도 높이는 작업 진행중
+3. 대화기록 보존은 30일 설정이고 수정가능
+4. 세션 동시 요청 처리
