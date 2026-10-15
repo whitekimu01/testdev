@@ -35,3 +35,137 @@
   footer { max-width: 980px; margin: 26px auto 40px; text-align: center; font-size: 12px; color: #9a9cb5; }
 </style>
 </head>
+<body>
+  <div class="hero">
+    <h1>LUMA 화면 매뉴얼</h1>
+    <p>실제 프론트엔드 소스·백엔드 데이터 기반으로 자동 생성된 화면별 사용자 매뉴얼입니다</p>
+    <input id="q" type="search" placeholder="화면명 · 경로 · API 검색" oninput="filterCards(this.value)" autofocus>
+  </div>
+  <main id="list">
+      <a class="card" href="/manuals/abt-summary-snapshot.html">
+        <div class="card-top"><span class="name">Pivot Table</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-table">테이블</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/data/abt/pivotTable</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="ABT 요약 데이터 조회">ABT 요약 데이터 조회</p>
+<div class="gen-time">2026-10-15 14:36 생성</div>      </a>
+      <a class="card" href="/manuals/ai-ktoutlierdetection-snapshot.html">
+        <div class="card-top"><span class="name">Kt Outlier Detection</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-table">테이블</span><span class="badge b-struct" title="렌더 근거 미확인 — 조회는 성공했으나 화면 렌더를 확인하지 못함">구조만</span></span></div>
+        <div class="chips"><span class="chip">/ai/ktOutlierDetection</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트">런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트</p>
+<div class="gen-time">2026-10-15 14:26 생성</div>      </a>
+      <a class="card" href="/manuals/ai-wtgradedie-snapshot.html">
+        <div class="card-top"><span class="name">WT Grade Die Chart</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-table">테이블</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/ai/wtGradeDie</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트">런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트</p>
+<div class="gen-time">2026-10-15 14:27 생성</div>      </a>
+      <a class="card" href="/manuals/ai-wtoutlierdetection-snapshot.html">
+        <div class="card-top"><span class="name">WT Outlier Detection</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-table">테이블</span><span class="badge b-struct" title="렌더 근거 미확인 — 조회는 성공했으나 화면 렌더를 확인하지 못함">구조만</span></span></div>
+        <div class="chips"><span class="chip">/ai/wtOutlierDetection</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트">런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트</p>
+<div class="gen-time">2026-10-15 14:26 생성</div>      </a>
+      <a class="card" href="/manuals/chart-bcdefecttrend-snapshot.html">
+        <div class="card-top"><span class="name">BC Defect Trend Chart</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-chart">차트</span><span class="badge b-struct" title="렌더 근거 미확인 — 조회는 성공했으나 화면 렌더를 확인하지 못함">구조만</span></span></div>
+        <div class="chips"><span class="chip">/chart/bcDefectTrend</span><span class="chip ep">POST /api/v2/search/defect</span></div>
+        <p class="desc" title="런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트">런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트</p>
+<div class="gen-time">2026-10-15 14:31 생성</div>      </a>
+      <a class="card" href="/manuals/chart-bcresponsetrend-snapshot.html">
+        <div class="card-top"><span class="name">BC Response Trend Chart</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-chart">차트</span><span class="badge b-struct" title="렌더 근거 미확인 — 조회는 성공했으나 화면 렌더를 확인하지 못함">구조만</span></span></div>
+        <div class="chips"><span class="chip">/chart/bcResponseTrend</span><span class="chip ep">POST /api/v2/search/response</span></div>
+        <p class="desc" title="런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트">런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트</p>
+<div class="gen-time">2026-10-15 14:36 생성</div>      </a>
+      <a class="card" href="/manuals/correlation-chart-v2-snapshot.html">
+        <div class="card-top"><span class="name">Correlation Analysis</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-chart">차트</span><span class="badge b-struct" title="렌더 근거 미확인 — 조회는 성공했으나 화면 렌더를 확인하지 못함">구조만</span></span></div>
+        <div class="chips"><span class="chip">/ai/correlation</span><span class="chip ep">POST /api/v2/ai/data/list</span></div>
+        <p class="desc" title="런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트">런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트</p>
+<div class="gen-time">2026-10-15 14:23 생성</div>      </a>
+      <a class="card" href="/manuals/fail-address-detailmap-snapshot.html">
+        <div class="card-top"><span class="name">Fail Address Detail Map</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-chart">차트</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/chart/abt/detailMap</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="Fail Address 상세 맵(HeatMap) 데이터 조회">Fail Address 상세 맵(HeatMap) 데이터 조회</p>
+<div class="gen-time">2026-10-15 14:28 생성</div>      </a>
+      <a class="card" href="/manuals/fail-address-distribution-snapshot.html">
+        <div class="card-top"><span class="name">Fail Address Distribution</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-chart">차트</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/chart/abt/distribution</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="Fail Address 분포 차트 (total + mod 두 종류 동시 조회)">Fail Address 분포 차트 (total + mod 두 종류 동시 조회)</p>
+<div class="gen-time">2026-10-15 14:28 생성</div>      </a>
+      <a class="card" href="/manuals/file-processing-results-snapshot.html">
+        <div class="card-top"><span class="name">File Processing Results</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-table">테이블</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/data/abt/fileProcessingResults</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="ABT 파일 처리 결과 목록 조회">ABT 파일 처리 결과 목록 조회</p>
+<div class="gen-time">2026-10-15 14:36 생성</div>      </a>
+      <a class="card" href="/manuals/fuse-usage-snapshot.html">
+        <div class="card-top"><span class="name">Fuse Usage Chart</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-chart">차트</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/chart/abt/usage</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="FUSE 사용량 차트 데이터 조회 (abt_chart_type=BCP→usage, TOTAL→total)">FUSE 사용량 차트 데이터 조회 (abt_chart_type=BCP→usage, TOTAL→total)</p>
+<div class="gen-time">2026-10-15 14:29 생성</div>      </a>
+      <a class="card" href="/manuals/lot-history-snapshot.html">
+        <div class="card-top"><span class="name">Lot History Table</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-table">테이블</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/data/lotHistoryTable</span><span class="chip ep">POST /api/v2/search/v2</span></div>
+        <p class="desc" title="Lot 이력 조회 (sub_path=fab/kt/wt/wlp)">Lot 이력 조회 (sub_path=fab/kt/wt/wlp)</p>
+<div class="gen-time">2026-10-15 14:38 생성</div>      </a>
+      <a class="card" href="/manuals/map-wafertsv-snapshot.html">
+        <div class="card-top"><span class="name">Wafer Tsv</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-chart">차트</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/map/waferTsv</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트">런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트</p>
+<div class="gen-time">2026-10-15 16:05 생성</div>      </a>
+      <a class="card" href="/manuals/probe-trend-chart-snapshot.html">
+        <div class="card-top"><span class="name">Probe Trend Chart</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-chart">차트</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/chart/probeTrend</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트">런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트</p>
+<div class="gen-time">2026-10-15 14:32 생성</div>      </a>
+      <a class="card" href="/manuals/raw-table-snapshot.html">
+        <div class="card-top"><span class="name">Raw Download</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-table">테이블</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/data/rawDownload</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="Raw 데이터 테이블 조회 (map_type=abt/bin/item/tsvos)">Raw 데이터 테이블 조회 (map_type=abt/bin/item/tsvos)</p>
+<div class="gen-time">2026-10-15 14:38 생성</div>      </a>
+      <a class="card" href="/manuals/response-trend-chart-snapshot.html">
+        <div class="card-top"><span class="name">Response Trend Chart</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-chart">차트</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/chart/responseTrend</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트">런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트</p>
+<div class="gen-time">2026-10-15 14:34 생성</div>      </a>
+      <a class="card" href="/manuals/target-die-analysis-snapshot.html">
+        <div class="card-top"><span class="name">Target Die Analysis</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-table">테이블</span><span class="badge b-struct" title="렌더 근거 미확인 — 조회는 성공했으나 화면 렌더를 확인하지 못함">구조만</span></span></div>
+        <div class="chips"><span class="chip">/ai/targetDieAnalysis</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트">런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트</p>
+<div class="gen-time">2026-10-15 14:20 생성</div>      </a>
+      <a class="card" href="/manuals/trend-chart-snapshot.html">
+        <div class="card-top"><span class="name">ABT Trend Chart</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-chart">차트</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/chart/abt/trend</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="카테고리별 트렌드 차트 데이터 조회">카테고리별 트렌드 차트 데이터 조회</p>
+<div class="gen-time">2026-10-15 14:29 생성</div>      </a>
+      <a class="card" href="/manuals/wafer-cum-map-snapshot.html">
+        <div class="card-top"><span class="name">Wafer Cum Map</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-chart">차트</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/map/waferCum</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="Wafer 누적 Map 차트 데이터 조회 (map_type=abt/bin/item)">Wafer 누적 Map 차트 데이터 조회 (map_type=abt/bin/item)</p>
+<div class="gen-time">2026-10-15 14:49 생성</div>      </a>
+      <a class="card" href="/manuals/wafer-map-snapshot.html">
+        <div class="card-top"><span class="name">Wafer Map</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-chart">차트</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/map/wafer</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="Wafer Map 차트 데이터 조회 (map_type=abt/bin/item)">Wafer Map 차트 데이터 조회 (map_type=abt/bin/item)</p>
+<div class="gen-time">2026-10-15 14:49 생성</div>      </a>
+      <a class="card" href="/manuals/warpage-interpolation-snapshot.html">
+        <div class="card-top"><span class="name">Warpage Map Interpolation</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-chart">차트</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/ai/warpageMapInterpolation</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트">런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트</p>
+<div class="gen-time">2026-10-15 14:44 생성</div>      </a>
+      <a class="card" href="/manuals/warpage-map-snapshot.html">
+        <div class="card-top"><span class="name">Warpage Map</span><span class="top-badges"><span class="badge b-real">실데이터</span><span class="badge b-chart">차트</span><span class="badge b-render">실렌더</span></span></div>
+        <div class="chips"><span class="chip">/map/warpage</span><span class="chip ep">POST /api/v2/search</span></div>
+        <p class="desc" title="런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트">런타임 관측(실제 요청 캡처)으로 식별된 대표 조회 엔드포인트</p>
+<div class="gen-time">2026-10-15 14:50 생성</div>      </a>
+  </main>
+  <div id="empty" style="display:none">검색 결과가 없습니다</div>
+  <footer>총 22개 · 조회 시점 2026-10-15 16:21:32</footer>
+  <script>
+    function filterCards(q) {
+      q = q.trim().toLowerCase();
+      var shown = 0;
+      document.querySelectorAll('#list .card').forEach(function (c) {
+        var hit = !q || c.textContent.toLowerCase().indexOf(q) !== -1;
+        c.style.display = hit ? '' : 'none';
+        if (hit) shown++;
+      });
+      document.getElementById('empty').style.display = shown ? 'none' : 'block';
+    }
+  </script>
+</body>
+</html>
