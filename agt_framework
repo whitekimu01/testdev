@@ -67,3 +67,115 @@ graph LR
 ① openapi.json 참조 파이프라인은 이미 존재하고, 
 ② 이를 7개 → 전체 커버리지로 확장하려면 "OpenAPI 캐시 기반 제네릭 도구 + 응답 정규화 + 읽기전용 화이트리스트"가 현실적이며, 
 ③ Chainlit 대체 기능 3종(스트리밍/세션관리/파일RAG+SSO)은 이미 Gaia chat API에 구현 완료 상태입니다.
+
+
+
+// 
+
+프로젝트 구조를 먼저 파악해볼게요.
+
+README와 소스 구조를 살펴볼게요.
+
+핵심 디렉토리들(`tools`, `core`, `gaia`)과 README의 프로젝트 구조 부분을 확인할게요.
+
+에이전트 관련 핵심 파일들을 더 확인해볼게요.
+
+`agent.md`는 코딩 도구용 인덱스네요. 이제 실제 에이전트 도구와 워크플로우 코드를 확인해볼게요.
+
+이제 전체 그림이 잡히네요. 상태 정의와 프로젝트 워크플로우 문서를 확인해서 설명을 완성할게요.
+
+거의 다 파악됐어요. 마지막으로 요청 진입점(라우터)과 dynamic_orchestrator의 역할만 확인할게요.
+
+파악이 끝났습니다. 전체 구조와 동작 방식을 정리해드릴게요.
+
+# GAIA-LUMA AI Agent Framework 구조 설명
+
+## 한 줄 요약
+
+**FastAPI 서버 위에서 LangGraph 기반 ReAct 에이전트들이 동작하는 프레임워크**입니다. 사용자 요청이 들어오면 → 라우팅으로 에이전트를 골라 → 각 에이전트가 자기 전용 도구를 LLM과 함께 반복 호출(ReAct)하고 → 결과를 모아 검증한 뒤 최종 답변을 반환합니다.
+
+## 1. 전체 구조 (디렉토리 관점)
+
+```text
+app.py                        # 서버 시작점
+src/
+  gaia/core.py                # FastAPI 앱, A2A 라우트, 미들웨어 (프레임워크 코어)
+  routers/chat/               # REST/SSE 채팅 API 진입점
+    module.py                 # workflow 자동 발견/로더 (WorkflowManager)
+  lib/a2a/                    # A2A 프로토콜 브리지 (AgentCard, AgentExecutor)
+  workflows/
+    agentic_state.py          # AgentState (LangGraph 공유 상태 정의)
+    luma/orchestrator.py      # ★ 핵심: 다중 에이전트 오케스트레이터 그래프
+    luma/dynamic_orchestrator.py  # 상태 기반 동적 도구 오케스트레이션
+  tools/luma_tools.py         # ★ 에이전트가 쓰는 도구들 (LangChain @tool)
+  core/                       # LLM 바인딩, 파라미터 추출, RAG, 메모리
+  memory/                     # 3계층 메모리 (세션/Redis/Milvus)
+  guardrails/                 # 프롬프트 인젝션 필터, 식별자 마스킹
+```
+
+## 2. 요청 흐름 (동작 방식)
+
+```mermaid
+flowchart TD
+    A[사용자 요청<br/>REST / SSE / A2A] --> B[WorkflowManager<br/>workflow 모듈 선택]
+    B --> C[routing_node<br/>임베딩 기반 에이전트 Top-K 선택<br/>파라미터 의미 추출]
+    C --> D[agent_fanout_node<br/>선택된 에이전트 병렬 실행]
+    D --> E[ReAct 루프<br/>LLM 추론 ↔ 도구 실행<br/>MAX_ITER=2]
+    E --> F[aggregation<br/>결과 수집/정제]
+    F --> G[cross_validation<br/>교차 검증 Gate]
+    G -->|통과| H[finalize<br/>answer + metadata 반환]
+    G -->|실패| I[correction<br/>재시도 MAX_RETRY=1]
+    I --> F
+```
+
+### 단계별 설명
+
+**① 진입 — `src/gaia/core.py` + `src/routers/chat/module.py`**
+- `GaiaService`가 FastAPI 앱을 만들고 REST/SSE/A2A 라우터를 등록합니다.
+- `WorkflowManager`는 `src/workflows/` 아래 모듈을 자동으로 스캔해서, `ainvoke`/`astream`을 가진 객체(=LangGraph 그래프)를 `manager`로 찾아냅니다. **새 에이전트 기능은 이 폴더에 워크플로우로 추가하는 게 기본 규칙**입니다 (`agent.md` 명시).
+
+**② 라우팅 — `orchestrator.py`의 `routing_node`**
+- 임베딩 모델(bge-m3) 의미 유사도로 어떤 에이전트를 쓸지 Top-K 선택합니다.
+- 이때 쿼리에서 **Lot ID, 공정명, 카테고리, 조회 기간** 같은 파라미터를 정규식 + 임베딩으로 미리 추출해 상태(`AgentState`)에 넣습니다. 후속 질문이면 이전 턴 값도 상속합니다.
+- Guardrails(`sanitize_input`)로 프롬프트 인젝션을 필터링합니다.
+
+**③ 병렬 실행 — `agent_fanout_node`**
+- 선택된 에이전트들을 `asyncio.gather`로 **병렬** 실행합니다. 각 에이전트는 자기만의 ReAct 서브그래프(`routing → llm_reasoning → tool_execution → llm_reasoning → ... → validation → output`)를 돕니다.
+- 원격 A2A 에이전트(`a2a_remote_urls`)도 같은 방식으로 병렬 호출에 포함됩니다.
+
+**④ 도구 — `src/tools/luma_tools.py`**
+
+에이전트별로 도구 세트가 고정 매핑되어 있습니다:
+
+| 에이전트 | 역할 | 주요 도구 |
+|---|---|---|
+| `web` | LUMA 화면 열기/URL 생성 | `open_luma_screen`, `get_menu_list` 등 |
+| `analytic` | 데이터 분석 (web 도구 폴백) | `open_luma_screen` |
+| `file` | 파일 처리 결과 | `open_luma_screen` 등 화면 도구 |
+| `rag` | 문서 검색 | `search_documents` + URL 도구 |
+| `vibe` | 코드 생성 (페이지/자동화) | `generate_vibe_page`, `edit_vibe_page`, `write_code_file` 등 |
+
+- 도구는 LangChain `@tool` 데코레이터로 정의되고, `AGENT_TOOLS_MAP`으로 에이전트→도구를 연결합니다. 각 에이전트마다 전용 `SYSTEM_PROMPTS`가 있습니다.
+- 흥미로운 장치: `TOOL_COMPLETION_CONTRACT` — `open_luma_screen` 같은 **단말 도구가 성공하면 ReAct 루프를 즉시 종료**하는 계약이 있습니다. 불필요한 LLM 재추론을 막는 설계입니다.
+
+**⑤ 검증/출력**
+- 여러 에이전트 결과를 `aggregation`에서 수합 → `cross_validation`에서 교차 검증 → 통과하면 `finalize`(GAIA 계약: `answer` + `metadata`)로 응답, 실패하면 `correction`으로 1회 재시도합니다.
+- 출력 시 `mask_identifiers`로 사내 식별자를 마스킹합니다.
+
+## 3. 두 가지 실행 모드
+
+1. **고정 에이전트 모드** (기본): 위 그림처럼 routing → fanout → aggregation → validation
+2. **동적 오케스트레이션 모드** (`dynamic_orchestrator.py`): 고정 에이전트 대신 **매 스텝 상태에 따라 도구 세트를 동적으로 구성**하고, 멀티 스텝 계획(`dynamic_plan`)과 산출물(`artifacts`)을 턴 간 유지하며 "thinking → 도구 → thinking → 검증"을 반복합니다. 도구 재질문(필수값 부족)이 감지되면 즉시 루프를 종료해 지연을 줄입니다.
+
+## 4. 지원 인프라
+
+- **메모리 3계층**: 세션 메모리 + Redis + Milvus(벡터) — `src/memory/`, `src/core/*_memory.py`
+- **RAG**: `retriever.py`, `rag_filter.py`, `search_documents` 도구
+- **관측성**: Phoenix 트레이싱, SSE로 plan/tool/status/artifact 이벤트를 실시간 스트리밍
+- **외부 연동**: A2A(Super Agent와 에이전트 간 통신), MCP(`src/mcp/`), Google ADK
+
+## 요약하면
+
+이 프레임워크의 핵심 설계는 **"에이전트 = LangGraph 그래프, 도구 = @tool 함수, 상태 = AgentState"** 의 조합입니다. 라우팅이 요청을 의미 기반으로 분류해 전문 에이전트(웹/분석/파일/RAG/코드생성)에 분배하고, 각 에이전트는 자기 전용 도구만으로 ReAct 루프를 돌린 뒤, 결과를 교차 검증해서 하나의 답변으로 합칩니다. 새 기능은 `src/workflows/`에 워크플로우 추가 + `src/tools/`에 도구 추가로 확장하는 구조입니다.
+
+더 깊게 들어가고 싶은 부분이 있나요? 예를 들어 `dynamic_orchestrator`의 상태 머신 상세, 메모리 3계층 동작, 또는 A2A 연동 구조를 파고들 수 있습니다.
