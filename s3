@@ -1,0 +1,39 @@
+(s3)
+winget install -e --id Amazon.AWSCLI
+aws --version
+aws configure
+	AKIA18659A0DA4CEB7FF
+	r29V/muEZey3jYlo9u0LELIR25KT1OZ1/x6UFpAd
+aws s3 ls s3://bucket-gaia-luma-ai-agent-d/ --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
+
+전체 파일 목록 (하위 폴더 포함 재귀 조회)
+aws s3 ls s3://bucket-gaia-luma-ai-agent-d/manuals/ --recursive --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
+파일 개수 + 총 용량 요약
+aws s3 ls s3://bucket-gaia-luma-ai-agent-d/ --recursive --summarize --endpoint-url http://s3hcp01.sddc.skhynix.com:9020 | findstr /C:"Total"
+파일 하나 내려받기
+aws s3 cp s3://bucket-gaia-luma-ai-agent-d/manuals/test.html D:\ --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
+파일 올리기
+--aws s3 cp D:\test.html s3://bucket-gaia-luma-ai-agent-d/manuals/test.html --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
+aws s3api put-object --bucket bucket-gaia-luma-ai-agent-d --key manuals/test.html --body D:\test.html --content-type "text/html" --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
+업로드 확인
+aws s3 ls s3://bucket-gaia-luma-ai-agent-d/manuals/ --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
+파일 삭제
+aws s3 rm s3://bucket-gaia-luma-ai-agent-d/manuals/ --recursive --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
+서명 (presign URL 생성 → 브라우저에서 렌더링 확인)
+aws s3 presign s3://bucket-gaia-luma-ai-agent-d/manuals/test.html --expires-in 604800 --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
+ex)
+C:\Users\X0181744>aws s3 presign s3://bucket-gaia-luma-ai-agent-d/manuals/test.html --expires-in 604800 --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
+http://s3hcp01.sddc.skhynix.com:9020/bucket-gaia-luma-ai-agent-d/manuals/test.html?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA18659A0DA4CEB7FF%2F20261029%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261029T024509Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=df53ec1ed908a2756b35e275907e7f070c7dab53577890da71d923a1bf146526
+
+presign 방식(S3 직접)은 코드 변경이 필요 없다는 장점이 있지만 7일 만료라 "홈 링크" 용도에는 부적합하고, URL에 버킷·엔드포인트가 노출됩니다. 프로젝트 서명 URL 방식이 최종 목적지에 적합합니다.
+매뉴얼 생성 시점에 프로젝트가 서명 URL을 자동으로 만들어 응답에 포함하므로, 사용자나 개발자가 presign을 수동 실행할 일은 없습니다. 
+ex)
+매뉴얼 생성 (프로젝트/에이전트)
+   ↓ put_object (text/html)
+S3: manuals/{name}.html 저장
+   ↓ 프로젝트가 서명 URL 자동 생성
+매뉴얼 홈 링크: http://.../file/manuals/{name}.html?expires=0&sig=xxxx
+   ↓ 사용자가 클릭
+프로젝트 서버: sig 검증 → S3에서 읽어서 → text/html + inline으로 스트리밍
+   ↓
+브라우저 렌더링
