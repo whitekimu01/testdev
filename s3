@@ -2,8 +2,8 @@
 winget install -e --id Amazon.AWSCLI
 aws --version
 aws configure
-	AKIA18659A0DA4CEB7FF
-	r29V/muEZey3jYlo9u0LELIR25KT1OZ1/x6UFpAd
+	AKIA1865***9A0DA4CEB7FF
+	r29V/muEZey3j***KT1OZ1/x6UFpAd
 aws s3 ls s3://bucket-gaia-luma-ai-agent-d/ --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
 
 전체 파일 목록 (하위 폴더 포함 재귀 조회)
@@ -37,3 +37,11 @@ S3: manuals/{name}.html 저장
 프로젝트 서버: sig 검증 → S3에서 읽어서 → text/html + inline으로 스트리밍
    ↓
 브라우저 렌더링
+
+
+
+
+재귀 복사 (폴더 안 전체 다운로드)
+aws s3 cp s3://bucket-gaia-luma-ai-agent-d/manuals D:\temp\ --recursive --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
+하위 폴더 구조 유지
+aws s3 cp s3://bucket-gaia-luma-ai-agent-d/manuals D:\temp\manuals --recursive --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
