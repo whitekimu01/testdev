@@ -15,6 +15,7 @@ aws s3 cp s3://bucket-gaia-luma-ai-agent-d/manuals/test.html D:\ --endpoint-url 
 파일 올리기
 --aws s3 cp D:\test.html s3://bucket-gaia-luma-ai-agent-d/manuals/test.html --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
 aws s3api put-object --bucket bucket-gaia-luma-ai-agent-d --key manuals/test.html --body D:\test.html --content-type "text/html" --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
+for %f in (D:\temp\manuals\*.html) do aws s3api put-object --bucket bucket-gaia-luma-ai-agent-d --key "manuals/%~nxf" --body "%f" --content-type "text/html" --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
 업로드 확인
 aws s3 ls s3://bucket-gaia-luma-ai-agent-d/manuals/ --endpoint-url http://s3hcp01.sddc.skhynix.com:9020
 파일 삭제
