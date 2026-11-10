@@ -179,3 +179,215 @@ flowchart TD
 이 프레임워크의 핵심 설계는 **"에이전트 = LangGraph 그래프, 도구 = @tool 함수, 상태 = AgentState"** 의 조합입니다. 라우팅이 요청을 의미 기반으로 분류해 전문 에이전트(웹/분석/파일/RAG/코드생성)에 분배하고, 각 에이전트는 자기 전용 도구만으로 ReAct 루프를 돌린 뒤, 결과를 교차 검증해서 하나의 답변으로 합칩니다. 새 기능은 `src/workflows/`에 워크플로우 추가 + `src/tools/`에 도구 추가로 확장하는 구조입니다.
 
 더 깊게 들어가고 싶은 부분이 있나요? 예를 들어 `dynamic_orchestrator`의 상태 머신 상세, 메모리 3계층 동작, 또는 A2A 연동 구조를 파고들 수 있습니다.
+
+
+
+
+
+---
+
+3개 explorer 탐색이 완료되었습니다. 전체 구조를 정리해 드립니다.
+
+# 📐 전체 구조 개요
+
+**최근 변경 핵심**: `bfb01a8` (2026-10-30) 커밋에서 오케스트레이션 코드가 **`src/workflows/luma/orchestration/` 서브패키지로 분리**되었습니다 (10개 모듈, 1,823줄). 이후 `7216ddf` (11-03)에서 `dynamic_orchestrator.py` / `orchestrator_finalize.py`에 예외 처리 보강이 이루어졌습니다.
+
+---
+
+# 1️⃣ orchestration/ — 동적 오케스트레이터
+
+위치: `src/workflows/luma/orchestration/`
+
+| 파일 | 라인 수 | 역할 |
+|---|---|---|
+| `orchestrator.py` | 10줄 | 진입점 — graph 재export만 |
+| `dynamic_orchestrator.py` | 530줄 | **핵심 동적 오케스트레이션 노드** |
+| `orchestrator_plan.py` | 198줄 | 계획(plan) 전환·루프 종료 판정·산출물 누적 |
+| `orchestrator_finalize.py` | 247줄 | 최종 응답 검증·대체·결정적 재안내 |
+| `orchestrator_events.py` | 92줄 | SSE 이벤트(plan/status/tool) 발행 |
+| `graph.py` | 139줄 | LangGraph 빌더·분기 라우팅 |
+| `fanout.py` | 265줄 | 병렬 폴백 파이프라인 + 원격 A2A |
+| `aggregation.py` | 209줄 | 결과 수집·교차 검증·최종 출력 |
+| `validation.py` | 169줄 | 응답 검증 + `_stream_text` 헬퍼 |
+| `budgets.py` | 17줄 | 공유 상수 (`MAX_ITER=2`, `MAX_RETRY=1`) |
+
+## `dynamic_orchestrator.py` (핵심)
+
+클래스 없이 **단일 async 함수 `dynamic_orchestration_node`** (L54-530)로 구성:
+
+- **L27-49**: 하위 모듈에서 심볼 재export — `orchestrator_events`(3함수), `orchestrator_finalize`(4함수), `orchestrator_plan`(9심볼)
+- **L63-70**: 지연 import — `_llm_reasoning_impl`, `tool_execution_node`, `_stream_text`, `DYNAMIC_ITER_BUDGET`(기본 6)
+- **L76-106**: `sub_state` 구성 — 멀티턴 상태(`dynamic_plan`/`artifacts`/`turn_context`) 이어받기
+- **L128-361**: **메인 스텝 루프** — `dynamic_tool_policy`(L139) → LLM 추론(L188, `force_tools=True`) → `tool_execution_node`(L269) → artifacts 수집(L334) → plan 전환(L336) → 종료 판정(L341)
+  - 특수 경로: 도구 없음+범위 밖 번호 → 결정적 재안내(L146-156), `llm_failed` 즉시 종료(L214-217), manual 도구 미호출 1회 재프롬프트(L227-247), 도구 전체 에러 피드백 1회 재시도(L342-356)
+- **L366-433**: `_assemble_final_answer` + 화면 모호성 재질문 → `params_request(choice)` 구성
+- **L437-485**: turn 판정 적립, urls/chart/vibe_page 수집, answer 스트리밍
+- **L507-530**: 반환 dict — `output`/`urls`/`params_request`/`dynamic_plan`/`artifacts`/`turn_context`
+
+## 지원 모듈 핵심 심볼
+
+| 파일 | 주요 심볼 | 위치 |
+|---|---|---|
+| `orchestrator_plan.py` | `PLAN_VIBE/DATA/ANALYSIS/SCREEN/INTERPRET`, `_collect_artifacts`(L86), `_advance_plan`(L142), `_loop_exit_reason`(L169) | |
+| `orchestrator_finalize.py` | `_assemble_final_answer`(L65), `_reask_out_of_range_screen`(L167), `_is_broken_protocol_text`(L57 — 프로토콜 태그 잔존 감지, 신규) | |
+| `orchestrator_events.py` | `_emit_plan`(L24), `_emit_status`(L30), `_emit_tool_events`(L73) | |
+| `graph.py` | `build_graph`(L67), `route_after_routing`(L24), `route_after_validation`(L35), 싱글톤 `graph`(L137) | |
+| `fanout.py` | `agent_fanout_node`(L209), `_run_agent_workflow`(L45 — ReAct 루프), `_run_remote_agent`(L119 — A2A JSON-RPC) | |
+| `aggregation.py` | `aggregation_node`(L16), `cross_validation_node`(L149), `output_node`(L192) | |
+
+## 파일 간 관계 + 그래프 흐름
+
+```
+routers/chat/module.py ──→ orchestrator.py ──→ graph.py ──→ [aggregation, fanout, budgets, dynamic_orchestrator(지연)]
+dynamic_orchestrator.py ──→ orchestrator_plan(9) + orchestrator_finalize(4) + orchestrator_events(3) + validation._stream_text
+```
+
+```
+START → routing (routing_node: 에이전트 분류)
+  → route_after_routing (graph.py:L24-34)
+      ├─ dynamic_orchestration (기본 경로)
+      └─ agent_fanout (원격 A2A 존재 시 폴백)
+  → aggregation → cross_validation
+      ├─ output → finalize → END
+      └─ retry → correction → aggregation (MAX_RETRY=1)
+```
+
+---
+
+# 2️⃣ reasoning/ — LLM 추론 엔진
+
+위치: `src/workflows/luma/reasoning/`
+
+| 파일 | 줄 수 | 역할 |
+|---|---|---|
+| `reasoning.py` | 591줄 | LLM 추론 코어 (도구 바인딩·응답 파싱·스트리밍) |
+| `prompt_builder.py` | 440줄 | 턴 시스템 프롬프트 조립 |
+| `message_cleaner.py` | 285줄 | LLM 입력 메시지 정제 |
+| `agent_prompts.py` | 152줄 | **에이전트별 시스템 프롬프트 정의** (아래 3번 참고) |
+
+### `reasoning.py` 핵심
+
+- **타임아웃/에러 헬퍼**: `_llm_timeout_for(role)`(L26 — manual=300초, 그 외=10초), `_is_timeout_error`(L39), `_get_llm_core`(L70 — temperature=0.1, max_tokens=8192)
+- **도구 호출 복원 엔진 (L97~348)**: LLM이 텍스트로 도구 호출을 흘릴 경우 복원
+  - `_TEXT_TOOL_CALL_RE`(L97) — 코드펜스(` ```toolname ` ) 파싱
+  - `_json_from_text`(L105) — 중괄호 겹친 깨진 JSON도 안쪽부터 재시도 파싱
+  - `_KNOWN_TOOL_NAMES = ("open_luma_screen",)`(L102)
+- **도구 바인딩**: L404-412 `get_tools_for_agent(agent)` → L464 `llm.bind_tools(tools, tool_choice="auto")`
+- **manual 에이전트 특수 처리**(L436-462): step1(근거읽기)/step2(기록)에서 `named tool_choice` 강제
+
+---
+
+# 3️⃣ 에이전트 / 도구 정의
+
+## 에이전트 정의 — 3요소 조합 방식
+
+전통적인 `class Agent`는 **없고**, ①시스템 프롬프트 + ②도구 매핑 + ③그래프 노드 조합으로 정의됩니다.
+
+| 항목 | 위치 | 내용 |
+|---|---|---|
+| 상태/타입 선언 | `agentic_state.py:16,39` | `AgentState(TypedDict)`, `current_agent: Literal[...]` |
+| 프롬프트 본문 | `agent_prompts.py:47-137` | `_AGENT_BODIES` dict |
+| 프롬프트 조립 | `agent_prompts.py:142-152` | `_build_agent_prompt()` → `SYSTEM_PROMPTS` |
+| 도구 매핑 | `registry.py:92-103` | `AGENT_TOOLS_MAP` |
+| 라우팅 | `analysis/routing.py:385,449` | `current_agent`/`active_agents` 설정 |
+
+**정의된 에이전트 6종** (`_AGENT_BODIES` 기준):
+
+| 에이전트 | 역할 |
+|---|---|
+| `web` | LUMA 화면 열기(`open_luma_screen`), 메뉴/URL 안내 |
+| `file` | 파일 처리 결과 화면 안내 |
+| `analytic` | 생산 데이터 분석 (등록 도구 없음 → web 풀 폴백) |
+| `vibe` | vibe 코딩 — 페이지/대시보드 생성·수정, 코드 파일 편집 |
+| `rag` | 기술 문서 검색(`search_documents`), 출처 명시 |
+| `manual` | 매뉴얼 설명 생성/기록 (근거 읽기 → 설명 작성 → 기록) |
+
+> ⚠️ `agentic_state.py:39`의 Literal에는 `manual`이 아직 없음 — 런타임에 문자열로 주입됩니다 (`observed_direct.py:597`).
+
+## 도구 정의 — LangChain `@tool` 15개
+
+`class Tool` 없이 데코레이터 방식:
+
+- **`screen_tools.py`** (6개): `get_menu_list`(L45), `search_documents`(L120), `get_screen_url`(L158), `list_all_screen_urls`(L185), `list_screens_by_menu`(L200), `open_luma_screen`(L253)
+- **`vibe_tools.py`** (7개): `generate_vibe_page`(L14), `list_vibe_pages`(L83), `edit_vibe_page`(L130), `list_code_files`(L175), `read_code_file`(L196), `write_code_file`(L223), `edit_code_file`(L251)
+- **`manual_tools.py`** (2개): `read_manual_guide_evidence`(L33), `save_manual_descriptions`(L86)
+
+## 도구 레지스트리 — `src/tools/luma/registry.py` (유일한 등록 지점)
+
+| 라인 | 심볼 | 역할 |
+|---|---|---|
+| L37-64 | `WEB_TOOLS`(5) / `VIBE_TOOLS`(7) / `MANUAL_TOOLS`(2) / `ALL_TOOLS` | 도구 그룹핑 |
+| L72-87 | `TOOL_COMPLETION_CONTRACT` + `tool_completion_hit()` | 단말 도구 완료 계약 |
+| L92-103 | `AGENT_TOOLS_MAP` | 에이전트별 도구 매핑 |
+| L120-126 | `CHATTING_TOOLS` | 채팅 그래프 상시 노출 세트 |
+| L131-140 | `TOOL_SELECTION_AGENTS` | 프론트 토글 → 에이전트 매핑 |
+| L164-322 | `dynamic_tool_policy()` | LLM 주도 도구 선택 + 반복호출 방지 |
+
+파사드: `src/tools/luma_tools.py` — 하위 패키지 심볼 재노출 호환 레이어.
+
+## 새 에이전트/도구 추가 절차 (3단계)
+
+```
+① @tool 함수 작성 (screen_tools/vibe_tools/manual_tools)
+② registry.py: 그룹 리스트 + AGENT_TOOLS_MAP 등록
+③ agent_prompts.py: _AGENT_BODIES에 프롬프트 본문 추가
+```
+
+---
+
+**요약**: 최근 변경은 오케스트레이션 코드를 역할별 모듈(`dynamic_orchestrator` = 실행 루프, `orchestrator_plan/finalize/events` = 판정/검증/이벤트)로 분리한 것이며, 에이전트는 "프롬프트+도구맵+그래프노드" 조합, 도구는 `@tool` + `registry.py` 중심 구조입니다. 특정 파일의 코드를 더 깊이 설명해 드릴까요?
+
+
+
+
+
+---
+
+# 분석 결과
+
+## 1. 동작 방식 — 프롬프트의 도구 정의와 실제 @tool의 관계
+
+**프롬프트의 도구 언급은 "행동 가이드"일 뿐, 실제 연결 수단이 아닙니다.** 매칭은 객체 주입 방식으로 이뤄집니다:
+
+```
+@tool 데코레이터 (import 시 Tool 객체 생성, docstring/스키마 포함)
+  → registry.py (src/tools/luma/registry.py)
+      - AGENT_TOOLS_MAP: 에이전트 → 도구 객체 하드코딩 매핑 (L92-103)
+  → reasoning.py L404-412: get_tools_for_agent(agent) 로 도구 주입
+  → llm.bind_tools(tools): LangChain이 docstring + pydantic 스키마를
+    LLM 함수 호출 스펙으로 변환 ← 여기서 LLM이 도구의 "설명"을 받음
+  → tool_execution.py L133: get_tool_by_name(tool_name) 으로 실행 매칭
+```
+
+즉:
+- **프롬프트(agent_prompts.py)**: 도구 "이름"만 언급 → LLM 행동 가이드
+- **@tool docstring**: 도구의 실제 설명(스펙) → `bind_tools`로 LLM에 전달
+- **실행 시 매칭**: LLM이 함수 호출 채널로 낸 이름 ↔ `ALL_TOOLS` 순회 비교 (`registry.py:109-114`)
+
+프롬프트 ↔ 실제 도구 매칭은 모두 일치합니다 (`open_luma_screen`→screen_tools.py:253, `generate_vibe_page`→vibe_tools.py:14 등 총 15개).
+
+## 2. file 도구 설명
+
+file 에이전트 프롬프트는 `agent_prompts.py:58-65`에 있고, 실제 도구 매핑은 `registry.py:95-100`:
+
+| 도구 | 용도 |
+|---|---|
+| `open_luma_screen` | 화면 열기 (프롬프트에서 `screen='file_processing_results'` 고정값 안내) |
+| `get_screen_url` / `list_all_screen_urls` / `list_screens_by_menu` | 화면 URL 조회 |
+
+프롬프트에 도구 상세 스펙은 없고, `open_luma_screen`의 docstring(화면 카탈로그 포함)이 설명을 담당합니다.
+
+## 3. save/read 도구가 manual_tools.py로 이동된 것에 대해
+
+맞습니다 — 현재 구조:
+
+- **위치**: `src/tools/luma/manual_tools.py` (유일한 정의 위치)
+- `read_manual_guide_evidence` (L33): 근거 읽기 전용 I/O → 내부적으로 `llm_describer.build_card_inputs` 지연 import로 위임 (순환참조 방지)
+- `save_manual_descriptions` (L86): 기록 전용 I/O → pydantic `_ManualDescriptionItem`(`extra="forbid"`)로 LLM 출력 형식 강제
+- **등록**: `registry.py:59-62` `MANUAL_TOOLS` → `AGENT_TOOLS_MAP["manual"]` (L102)
+
+**설계 원칙이 바뀐 것**입니다: 기존에는 설명 생성 로직이 `llm_describer`(배치 파이프라인)에 있었는데, 지금은 **설명 생성은 에이전트 LLM이 담당하고 tool은 순수 I/O(읽기/기록)만 담당**하도록 분리됐습니다 (`manual_tools.py:31-32` 주석 명시). 프롬프트에서도 도구명을 직접 쓰지 않고 "근거 수집 도구"/"기록 도구"로만 지칭하는데(L107, L109), 이는 `bind_tools`로 docstring이 전달되므로 이름 없이도 LLM이 호출할 수 있기 때문입니다.
+
+추가로, manual 에이전트는 `reasoning.py:436-462`에서 step1=근거읽기, step2=기록 도구를 **tool_choice로 강제**하는 특례가 있어 도구 미호출 종료가 차단됩니다.
+
+혹시 이 구조에서 수정하고 싶은 부분이 있으신가요? (예: file 에이전트 도구 정리, manual_tools 위치 이동 등)
