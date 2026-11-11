@@ -1,3 +1,162 @@
+// .config/opencode/opencode.jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "small_model": "hcp-comm/GLM-5.3-Flash",
+  "snapshot": false,
+  "share": "disabled",
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "tail_turns": 2,
+    "preserve_recent_tokens": 8000,
+    "reserved": 20000,
+  },
+  "provider": {
+    "hcp-assi": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "SK Hynix HCP assistant",
+      "options": {
+        "baseURL": "http://common.llm.skhynix.com/v1/",
+        "apiKey": "",
+        "headers": {
+          "Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ7XCJhY2NvdW50VHlwZVwiOlwiU0VSVklDRVwiLFwiYWNjb3VudElkXCI6XCJYMDE4MTc0NFwiLFwiYWNjb3VudE5hbWVcIjpcIjEyNjUxXCIsXCJhY2NvdW50RGV0YWlsXCI6e319In0._dSXzHOjjkNJ40K4V16aibcZxnjzq044v-lVssvoN2a9PN_zzbRY8AOQ16yKO1a-MiGEuqM-C8JqnoqUtNBY_A",
+        },
+      },
+      "models": {
+        "Qwen-2.5-Coder-32B": {
+          "name": "Qwen-2.5-Coder-32B",
+        },
+        "Qwen3-Coder-30B-A3B-Instruct": {
+          "name": "Qwen3-Coder-30B-A3B-Instruct",
+        },
+      },
+    },
+    "hcp-comm": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "SK Hynix HCP common",
+      "options": {
+        "baseURL": "http://common.llm.skhynix.com/v1/",
+        "apiKey": "",
+        "headers": {
+          "Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ7XCJhY2NvdW50VHlwZVwiOlwiU0VSVklDRVwiLFwiYWNjb3VudElkXCI6XCJYMDE4MTc0NFwiLFwiYWNjb3VudE5hbWVcIjpcIjEyNjUxXCIsXCJhY2NvdW50RGV0YWlsXCI6e319In0._dSXzHOjjkNJ40K4V16aibcZxnjzq044v-lVssvoN2a9PN_zzbRY8AOQ16yKO1a-MiGEuqM-C8JqnoqUtNBY_A",
+        },
+      },
+      "models": {
+        "gemma-4-31B-it": {
+          "name": "gemma-4-31B-it",
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"],
+          },
+          "limit": {
+            "context": 262144,
+            "input": 262144,
+            "output": 8192,
+          },
+          "options": {
+            "includeUsage": true,
+          },
+        },
+        "Qwen3.6-35B-A3B": {
+          "name": "Qwen3.6-35B-A3B",
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"],
+          },
+          "limit": {
+            "context": 262144,
+            "input": 262144,
+            "output": 8192,
+          },
+          "options": {
+            "includeUsage": true,
+          },
+        },
+        "GLM-5.3-Flash": {
+          "name": "GLM-5.3-Flash",
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"],
+          },
+          "limit": {
+            "context": 262144,
+            "input": 262144,
+            "output": 8192,
+          },
+          "options": {
+            "includeUsage": true,
+          },
+        },
+        "HCP-LLM-Latest": {
+          "name": "HCP-LLM-Latest",
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"],
+          },
+          "limit": {
+            "context": 262144,
+            "input": 262144,
+            "output": 8192,
+          },
+          "options": {
+            "includeUsage": true,
+          },
+        },
+        "HCP-Medium-Latest": {
+          "name": "HCP-Medium-Latest",
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"],
+          },
+          "limit": {
+            "context": 262144,
+            "input": 262144,
+            "output": 8192,
+          },
+          "options": {
+            "includeUsage": true,
+          },
+        },
+        "DeepSeek-V4.1-Flash-1017": {
+          "name": "DeepSeek-V4.1-Flash-1017",
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"],
+          },
+          "limit": {
+            "context": 262144,
+            "input": 262144,
+            "output": 8192,
+          },
+          "options": {
+            "includeUsage": true,
+            "reasoningEffort": "low",
+          },
+          "variants": {
+            "low": {
+              "reasoningEffort": "low",
+            },
+            "medium": {
+              "reasoningEffort": "medium",
+            },
+            "high": {
+              "reasoningEffort": "high",
+            },
+            "max": {
+              "reasoningEffort": "max",
+            },
+          },
+        },
+      },
+    },
+  },
+}
+
+
+
+
+
+
 // AGENT.md
 # AGENTS.md — 전역 에이전트 규칙
 
