@@ -1,0 +1,290 @@
+## 결론
+
+이 저장소에서 Playwright는 **E2E 테스트가 아니라 "LUMA 웹앱 HTML 매뉴얼 자동 생성용 브라우저 관측기"** 로 쓰입니다. Python `sync_api` 전용, `playwright.config.*`/`*.spec.ts` 없음.
+
+핵심 파일: `src/workflows/luma/html_gen/runtime_observer.py` (4,566줄), 진입은 `run_batch.py` → `observed_direct.run_direct()` → `RuntimeObserver.observe()`.
+
+---
+
+## 1. 세션 시작 · 브라우저 런치
+
+`src/workflows/luma/html_gen/runtime_observer.py:4123`
+```python
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError as e:
+    raise RuntimeError("playwright 미설치 — `pip install playwright` + `playwright install chromium` 필요") from e
+...
+with sync_playwright() as p:
+```
+
+`runtime_observer.py:4136` — 헤드리스 + 사내 프록시 우회 + 컨테이너 root면 sandbox 해제, `channel` 실패 시 chromium 폴백
+```python
+launch_kwargs: dict[str, Any] = {"headless": True, "args": ["--no-proxy-server"]}
+if hasattr(os, "geteuid") and os.geteuid() == 0:
+    launch_kwargs["args"].append("--no-sandbox")
+if self.browser_channel:
+    launch_kwargs["channel"] = self.browser_channel
+...
+launch_kwargs.pop("channel", None)
+browser = p.chromium.launch(**launch_kwargs)
+```
+
+→ **API**: `sync_playwright()`, `chromium.launch(headless, args, channel)`
+→ **기능**: 폐쇄망/컨테이너에서 브라우저 기동, Edge(msedge) → chromium 자동 폴백
+
+---
+
+## 2. 컨텍스트 · SSO 쿠키 · 네트워크 훅
+
+`runtime_observer.py:4161`
+```python
+context = browser.new_context(viewport={"width": 1920, "height": 1080})
+host = urlsplit(self.base_url).hostname or "127.0.0.1"
+context.add_cookies([
+    {"name": "SMSESSION", "value": "observer-session", "domain": host, "path": "/"},
+    {"name": "AMTOKEN", "value": "observer-token", "domain": host, "path": "/"},
+])
+for route in routes:
+    page = context.new_page()
+    page.on("request", self._on_request)
+    page.on("response", self._on_response)
+```
+
+→ **API**: `new_context`, `add_cookies`, `new_page`, `page.on("request"/"response")`
+→ **기능**: 로그인 없이 세션 쿠키 주입, 라우트별 페이지 + 네트워크 요청/응답 수집
+
+---
+
+## 3. API 응답 모킹 (`context.route`) — 가장 많이 쓰는 패턴
+
+`runtime_observer.py:740`
+```python
+context.route(
+    "**/api/client-data/ip",
+    lambda r: r.fulfill(status=200, content_type="application/json",
+                        body=json.dumps({"data": {"data": "10.10.10.10"}})),
+)
+context.route(
+    "**/verifyToken.jsp*",
+    lambda r: r.fulfill(status=200, content_type="text/plain",
+                        body="SM_USERLOGINNAME=observer;EMPNO=" + _DEV_TEST_EMPNO + ";"),
+)
+```
+
+`runtime_observer.py:818`
+```python
+r.fulfill(status=200, content_type="application/json",
+          body=json.dumps({"success": True, "data": items}))
+# glob '**' 마감 — '*' 는 '/' 를 제외해 /search/v2(sub_path) 미매칭 결함 해소
+context.route("**/api/v2/search**", _stub_search)
+```
+
+→ **API**: `context.route(pattern, handler)` + `route.fulfill(...)`
+→ **기능**: 백엔드 없이 인증/인프라 API와 `/search` 드롭다운 옵션을 yml `example_params` 값으로 스텁 → UI 조작 성립
+
+---
+
+## 4. 라우트 진입 (`goto` + 로드 대기)
+
+`runtime_observer.py:3337` — hash router 자동 감지
+```python
+url = f"{self.base_url}/#{route}" if self.hash_router else f"{self.base_url}{route}"
+```
+
+`runtime_observer.py:3438`
+```python
+page.goto(result["url"], wait_until="domcontentloaded", timeout=60000)
+try:
+    page.wait_for_load_state("networkidle", timeout=15000)
+except Exception:
+    pass  # 폴링 리소스로 networkidle 미도달 가능 — 계속 진행
+result["notes"].extend(self._wait_render(page))
+```
+
+→ **API**: `page.goto(wait_until, timeout)`, `wait_for_load_state`
+→ **기능**: 9MB+ 번들 대응해 `domcontentloaded`로 진입 후 하이드레이션 별도 대기
+
+---
+
+## 5. 폼 자동 입력 (locator 조작)
+
+**RangePicker 날짜** — `runtime_observer.py:1315`
+```python
+rng = page.locator("[class*='picker-range']").first
+if s_val and e_val and rng.count() > 0:
+    inputs = rng.locator("input")
+    if inputs.count() > 1:
+        inputs.first.fill(s_val[:10], timeout=2000)
+        page.keyboard.press("Enter")
+        inputs.nth(1).fill(e_val[:10], timeout=2000)
+        page.keyboard.press("Enter")
+```
+
+**antd select 옵션 선택** — `runtime_observer.py:1605`
+```python
+sel.click(timeout=2000)
+opt = page.locator(
+    "[class*='-select-dropdown']:not([class*='-hidden']) [class*='-select-item-option']"
+).filter(has_text=val_txt).first
+opt.click(timeout=5000)
+```
+
+→ **API**: `locator().first/nth/fill/click/filter(has_text)/count`, `page.keyboard.press`
+→ **기능**: antd 입력 컴포넌트는 `fill`이 아니라 **실제 클릭**으로 React state 반영
+
+**View 버튼(fallback 체인)** — `runtime_observer.py:3046`
+```python
+view = page.locator("button.search-view-btn:visible").first
+if view.count() == 0:
+    view = page.locator("button.search-view-btn").first
+if view.count() == 0:
+    view = page.get_by_role("button", name=re.compile(r"view|조회|run|실행|검색", re.I)).first
+...
+view.click(timeout=3000)
+```
+
+→ **API**: `get_by_role("button", name=re)`, `:visible` 의사클래스
+→ **기능**: 실제 조회 버튼 클릭 → 원본 앱이 실 API 요청을 발화하게 만듦(캡처 대상)
+
+---
+
+## 6. UI 안정화 (모달/드롭다운 정리)
+
+`runtime_observer.py:1914`
+```python
+menu = page.locator(".search-drop-menu.show").last
+opt = menu.locator(".search-drop-menu-item, li").filter(has_text=v).first
+opt.wait_for(timeout=700)  # /search 응답 후 옵션 렌더 등장 대기
+```
+
+`runtime_observer.py:2167` / `:2187`
+```python
+close = modal.locator(".ant-modal-close").first
+close.click(timeout=1500)
+...
+page.mouse.click(400, 300)   # 드롭다운 닫기용 중립 클릭
+```
+
+→ **API**: `locator.wait_for`, `is_visible`, `mouse.click(x, y)`
+→ **기능**: 오버레이가 다음 조작을 막지 않도록 정리
+
+---
+
+## 7. DOM 직렬화 + 그래픽 캡처 (산출물 핵심)
+
+`runtime_observer.py:3932`
+```python
+page.evaluate(
+    "() => document.querySelectorAll('canvas').forEach((c, i) => c.setAttribute('data-luma-cx', String(i)))"
+)
+snap = page.evaluate(
+    SNAPSHOT_JS,
+    {"buttons": btn_texts, "route": route, "guide": get_guide_arg(route)},
+)
+```
+
+`runtime_observer.py:3967`
+```python
+locs = page.locator("canvas")
+for _i in range(int(locs.count() or 0)):
+    c = locs.nth(_i)
+    if c.count() > 0 and c.is_visible():
+        png = c.screenshot(timeout=3000)
+        uri = "data:image/png;base64," + base64.b64encode(png).decode("ascii")
+```
+
+`runtime_observer.py:4001`
+```python
+page.screenshot(path=full, full_page=True)
+```
+
+→ **API**: `page.evaluate(JS, arg)`, `locator.screenshot`, `page.screenshot(full_page=True)`
+→ **기능**: WebGL canvas를 개별 PNG(data URI)로 보존, DOM/레이아웃/차트를 JSON으로 직렬화, 전체 페이지 스크린샷
+
+측정용 evaluate들 — `runtime_observer.py:996`
+```python
+title  = page.evaluate(_TITLE_JS)
+dom    = page.evaluate(_EXTRACT_JS, prefix)
+charts = page.evaluate(_CHARTS_JS)
+layout = page.evaluate(_LAYOUT_JS)
+```
+
+---
+
+## 8. 동적 뷰포트 · 정리
+
+`runtime_observer.py:3914`
+```python
+if _need_h > _vp["height"]:
+    page.set_viewport_size({
+        "width": _vp["width"],
+        "height": min(int(_need_h) + 80, 8000),
+    })
+    page.wait_for_timeout(600)
+```
+
+`runtime_observer.py:3092` / `:4191`
+```python
+page.reload(wait_until="domcontentloaded", timeout=60000)
+...
+finally:
+    page.close()
+...
+browser.close()
+```
+
+→ **API**: `set_viewport_size`, `reload`, `page.close`, `browser.close`
+→ **기능**: 세로 긴 화면 잘림 방지, 로그인 재시도, 리소스 해제
+
+---
+
+## 9. 설정·의존성·폐쇄망 대응
+
+`requirements.txt:46`
+```
+## 튜토리얼 관측 파이프라인
+playwright==1.60.0
+```
+
+`batch_config.yml:58`
+```yaml
+target_routes: ["/ai/ktOutlierDetection"]
+dist_dir: "sqream-front/dist"
+browser_channel: ""   # ""=playwright chromium — Linux 컨테이너에 msedge는 존재하지 않음
+port: 4490
+with_data: true
+```
+
+`cicd/basic/dev/Dockerfile:43` — 오프라인 chromium 번들 주입 후 런치 검증
+```dockerfile
+python -c "from playwright.sync_api import sync_playwright; pw=sync_playwright().start(); b=pw.chromium.launch(headless=True, args=['--no-sandbox','--disable-dev-shm-usage','--no-proxy-server']); print('[build] chromium OK:', b.version); b.close(); pw.stop()"
+```
+번들: `vendor/playwright/chrome-headless-shell-linux64.zip`
+
+---
+
+## 10. 전체 자동화 흐름
+
+```
+run_batch.py  (ensure_playwright())
+  └─ observed_direct.run_direct()
+       ├─ _StaticServer 로 sqream-front/dist 정적 서빙 (+/api 프록시)
+       └─ RuntimeObserver.observe(routes)
+            ① sync_playwright → chromium.launch(headless, --no-proxy)
+            ② new_context(1920×1080) + add_cookies(SSO) + route() 스텁
+            ③ 라우트별 new_page + request/response 훅
+               ├─ goto(url) → wait_for_load_state
+               ├─ locator fill/click 로 example_params 입력
+               ├─ get_by_role 로 View 버튼 실제 클릭
+               ├─ wait_for/is_visible 로 렌더 안정화
+               ├─ evaluate(SNAPSHOT_JS) + canvas/page screenshot
+               └─ page.close()
+       └─ create_snapshot_manual() → luma-manuals/*-snapshot.html
+```
+
+**요약**: `route()` 모킹 + `locator` 실조작으로 화면을 재현 → `evaluate`/`screenshot`으로 라이브 DOM·차트를 통째로 떠서 **폐쇄망 배포용 자기완결 HTML 매뉴얼**을 생성하는 구조입니다.
+
+- 테스트 러너 없음 (`playwright.config`, `*.spec.ts`, `e2e/` 0건)
+- 프론트엔드(`sqream-front`)는 Playwright 미사용 (전이 의존성 `electron-to-chromium`만 존재)
+- 용도: **UI 스크래핑 + 스냅샷 문서 자동화**
