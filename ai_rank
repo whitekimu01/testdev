@@ -1,0 +1,32 @@
+// 2026-11-12
+**Artificial Analysis Intelligence Index 기준** (2026-11-12 조회). 가격은 토큰 단가가 아니라 *Intelligence Index 태스크 1건당 비용(USD)* 입니다.
+
+| # | 모델 (추론 설정) | 제조사 | 지능 점수 | 태스크당 비용 |
+|---|---|---|---|---|
+| 1 | Claude Fable 5.2 (max) | Anthropic | 65 | $26.54 |
+| 2 | Claude Fable 5.2 (xhigh) | Anthropic | 62 | $14.83 |
+| 3 | Claude Fable 5.2 (high) | Anthropic | 62 | $9.08 |
+| 4 | Gemini 4 Carbon (high) | Google | 60 | $7.76 |
+| 5 | Claude Opus 5.5 (max) | Anthropic | 59 | $10.04 |
+| 6 | Gemini 4 Carbon (medium) | Google | 58 | $6.59 |
+| 7 | Claude Opus 5.5 (xhigh) | Anthropic | 57 | $6.05 |
+| 8 | GPT-6 Astra (max) | OpenAI | 57 | $6.24 |
+| 9 | Claude Fable 5.2 (medium) | Anthropic | 56 | $3.80 |
+| 10 | GPT-6 Astra (xhigh) | OpenAI | 55 | $3.66 |
+| 11 | GPT-6 Astra (high) | OpenAI | 55 | $3.24 |
+| 12 | GPT-6.1 Sol (max) | OpenAI | 55 | $1.27 |
+| 13 | Claude Sonnet 5.5 (max) | Anthropic | 55 | $10.02 |
+| 14 | Gemini 4 Carbon (low) | Google | 54 | $7.19 |
+| 15 | Claude Fable 5.2 (low) | Anthropic | 54 | $3.10 |
+| 16 | GPT-6.1 Sol (xhigh) | OpenAI | 52 | $0.76 |
+| 17 | Claude Opus 5.5 (high) | Anthropic | 52 | $3.46 |
+| 18 | GPT-6 Astra (medium) | OpenAI | 52 | $2.73 |
+| 19 | GPT-6.1 Terra (max) | OpenAI | 51 | $0.96 |
+| 20 | Gemini 4 Argon (high) | Google | 50 | $9.95 |
+
+**참고**
+- 상위권은 Anthropic(Claude Fable 5.2 / Opus 5.5)이 독점, 그 뒤 Google(Gemini 4) · OpenAI(GPT-6 계열)이 추격.
+- 가성비 축: GPT-6.1 Sol(high) 50점/$0.59, GPT-6.1 Terra(high) 42점/$0.26 — 점수 대비 비용이 매우 낮음.
+- 오픈 웨이트 최강: Kimi K3.1 Pro 46점($3.68), 그다음 DeepSeek V4.1 Flash 1017 max 33점($0.60), GLM-5.3 max 32점($5.01).
+- 속도 최강은 GPT-6 Luna(low) — 태스크당 0.6분.
+- 원하면 **토큰당 입출력 단가($/1M tokens)** 표로 다시 정리해 줄 수 있습니다.
