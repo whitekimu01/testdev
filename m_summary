@@ -1,0 +1,31 @@
+# html_gen 스냅샷 경로 파일 목록
+
+현재 매뉴얼은 **관측(observed) → DOM 스냅샷 HTML** 방식으로 동작합니다. 실제 호출 체인:
+
+`run_batch.py` → `observed_direct.run_direct()` → `runtime_observer` → `dom_snapshot.create_snapshot_manual()` → `llm_describer` → `html_meta` → `verify_tutorials`
+
+## 핵심 실행 파일
+
+| 파일 | 역할 |
+|---|---|
+| `observed_direct.py` | **진입 오케스트레이터**. `run_direct()`가 dist 검증 → 내장 서버 기동 → 관측 → `*-snapshot.html` 생성까지 지휘. 관측 결과를 카드 메타로 변환(`observed_to_screen`) |
+| `runtime_observer.py` | **관측기**. 4490 정적 서버(SPA fallback + `/api` 프록시) 기동, Playwright로 접속해 DOM/차트/네트워크 수집, example_params 주입, 스크린샷 캡처 |
+| `dom_snapshot.py` | **스냅샷 생성기**. 렌더된 DOM 직렬화, CSS/이미지/폰트 base64 인라인, 가이드 오버레이(번호·클릭박스·툴팁) 주입. `create_snapshot_manual()`이 본체 |
+| `llm_describer.py` | **LLM 설명 병합**. `build_card_inputs()`로 근거 수집, `save_manual_descriptions()`, `_merge_llm_into_snapshot()`으로 스냅샷 본문에 설명 삽입 |
+| `html_meta.py` | **메타 계약**. HTML 안의 `luma-meta` 블록 read/inject/update (별도 .meta.json 없는 단일 파일 구조) |
+| `guide_selectors.py` | **가이드 셀렉터**. `GLOBAL_GUIDE_SELECTORS` / `ROUTE_GUIDE_SELECTORS`, 라우트별 추가 조작 액션 정의 |
+| `verify_tutorials.py` | **검증**. 생성된 `*-snapshot.html` 무결성(파일 존재/HTML 구조/멀티바이트/LLM 블록) 검사 |
+| `css_extractor.py` | sqream-front SCSS에서 UI CSS 추출 (`extract_ui_css`) — 스냅샷 스타일 보존용 |
+| `frontend_analyzer.py` | React/TSX 정적 분석으로 라우트·필드·엔드포인트 추출 (관측 보조) |
+| `__init__.py` | 패키지 export (`verify_tutorials`, `print_report`) |
+
+## 스냅샷 경로에서 빠지는 파일 (카드/정적 경로용)
+
+`generator.py`, `screen_builder.py`, `screens.py`, `menu_client.py`, `web_validator.py`, `index_builder.py` — 인덱스 카드·정적 화면 메타용. 현재 observed 경로에서는 `screen_builder`의 헬퍼 일부만 사용됩니다.
+
+## 외부 의존 (직접 import)
+
+`src/tools/luma/manual_tools.py`, `src/tools/luma/registry.py`, `src/tools/luma_openapi_loader.py`, `src/tools/luma_param_validator.py`, `src/core/param_preflight.py`
+
+---
+요약하면 **스냅샷 동작의 실체는 `observed_direct.py` + `runtime_observer.py` + `dom_snapshot.py` 3개**이고, 나머지는 설명 병합·메타·검증·스타일 보조입니다.
